@@ -1,0 +1,254 @@
+qid,query,topic_number,turn_number
+4_1,What was the neolithic revolution?,4,1
+4_2,When did it start and end?,4,2
+4_3,Why did it start?,4,3
+4_4,What did the neolithic invent?,4,4
+4_5,What tools were used?,4,5
+4_6,When was it brought to the british isles?,4,6
+4_7,Describe the period that follows it.,4,7
+4_8,What was its significance?,4,8
+4_9,What were the houses like?,4,9
+17_1,What are the different forms of energy?,17,1
+17_2,How can it be stored?,17,2
+17_3,What type of energy is used in motion?,17,3
+17_4,Tell me about mechanical energy.,17,4
+17_5,Give me some examples.,17,5
+17_6,Why is sound a form of mechanical energy?,17,6
+17_7,How does it differ from potential energy?,17,7
+17_8,Are potential and kinetic the same?,17,8
+17_9,What type does chemical energy belong to?,17,9
+17_10,What form of energy is used in eating?,17,10
+18_1,Describe Uranus.,18,1
+18_2,What makes it so unusual?,18,2
+18_3,Tell me about its orbit.,18,3
+18_4,Why is it tilted?,18,4
+18_5,How is its rotation different from other planets?,18,5
+18_6,What is peculiar about its seasons?,18,6
+18_7,Are there any other planets similar to it?,18,7
+18_8,Describe the characteristics of Neptune.,18,8
+18_9,Why is it important to our solar system?,18,9
+18_10,How are these two planets similar to each other?,18,10
+18_11,Can life exist on either of them?,18,11
+22_1,What are the most common spices used in cooking?,22,1
+22_2,How are they different from herbs?,22,2
+22_3,Why do spices taste good?,22,3
+22_4,Where do most of them come from?,22,4
+22_5,What cuisines use them heavily?,22,5
+22_6,What are the most popular Indian ones?,22,6
+22_7,Tell me about turmeric.,22,7
+22_8,Are there any benefits of consuming it?,22,8
+22_9,What is the oldest spice?,22,9
+22_10,What is the most expensive and why?,22,10
+24_1,How can I help my friend stop smoking?,24,1
+24_2,What are its long term effects?,24,2
+24_3,Does it cause cancer?,24,3
+24_4,What makes it so addictive?,24,4
+24_5,Are there any alternatives to nicotine?,24,5
+24_6,How effective are the patches?,24,6
+24_7,Tell me about the cold turkey method.,24,7
+24_8,Describe typical withdrawal symptoms.,24,8
+27_1,What comprises a balanced diet?,27,1
+27_2,Is it the same for men as well as women?,27,2
+27_3,What are some specific recommendations for women?,27,3
+27_4,Are dairy products necessary for a good health?,27,4
+27_5,Can it harm you instead?,27,5
+27_6,How necessary is fiber?,27,6
+27_7,What happens if it's consumed in a smaller amount than recommended?,27,7
+30_1,What are some advantages of using Linux?,30,1
+30_2,Can I run Windows software in it?,30,2
+30_3,How does it compare to Windows?,30,3
+30_4,Which of these is more popular?,30,4
+30_5,How do I install software on it?,30,5
+30_6,What is an easy way to install Python?,30,6
+30_7,Tell me about how I can share files.,30,7
+40_1,What are the origins of popular music? ,40,1
+40_2,What are its characteristics?,40,2
+40_3,What technological developments enabled it?,40,3
+40_4,When and why did people start taking pop seriously? ,40,4
+40_5,How has it been integrated into music education? ,40,5
+40_6,Describe some of the influential pop bands. ,40,6
+40_7,What makes a song pop punk?,40,7
+40_8,What is the difference between it and emo?,40,8
+49_1,How was Netflix started? ,49,1
+49_2,How did it originally work?,49,2
+49_3,What is its relationship with Blockbuster?,49,3
+49_4,When did Netflix shift from DVDs to a streaming service?,49,4
+49_5,What are its other competitors? ,49,5
+49_6,How does it compare to Amazon Prime Video?,49,6
+49_7,Describe it’s subscriber growth over time.,49,7
+49_8,How has it changed the way TV is watched?,49,8
+50_1,What was the first artificial satellite?,50,1
+50_2,What are the types of orbits?,50,2
+50_3,What are the important classes of satellite?,50,3
+50_4,How do navigation systems work?,50,4
+50_5,What is the Galileo system and why is it important?,50,5
+50_6,Why did it create tension with the US?,50,6
+50_7,What are Cubesats?,50,7
+50_8,What are their advantages? ,50,8
+54_1,What is worth seeing in Washington D.C.?,54,1
+54_2,Which Smithsonian museums are the most popular?,54,2
+54_3,Why is the National Air and Space Museum important?,54,3
+54_4,Is the Spy Museum free?,54,4
+54_5,What is there to do in DC after the museums close?,54,5
+54_6,What is the best time to visit the reflecting pools?,54,6
+54_7,Are there any famous foods?,54,7
+54_8,What is a DC half smoke?,54,8
+54_9,Tell me about its history.,54,9
+56_1,What is Darwin’s theory in a nutshell?,56,1
+56_2,How was it developed? ,56,2
+56_3,How do sexual and asexual reproduction affect it?,56,3
+56_4,How can fossils be used to understand it?,56,4
+56_5,What is modern evidence for it? ,56,5
+56_6,What is the impact on modern biology?,56,6
+56_7,Compare and contrast microevolution and macroevolution.,56,7
+56_8,What is the relationship to speciation?,56,8
+58_1,What is a real-time database?,58,1
+58_2,How does it differ from traditional ones?,58,2
+58_3,What are the advantages of real-time processing?,58,3
+58_4,What are examples of important ones?,58,4
+58_5,What are important applications?,58,5
+58_6,What are important cloud options?,58,6
+58_7,Tell me about the Firebase DB.,58,7
+58_8,How is it used in mobile apps?,58,8
+61_1,Who are The Avengers?,61,1
+61_2,Tell me about their first appearance.,61,2
+61_3,Who is the most powerful and why? ,61,3
+61_4,What is the relationship of Spider-Man to the team?,61,4
+61_5,Why is Batman not a member? ,61,5
+61_6,What is an important team in the DC universe? ,61,6
+61_7,Tell me about the origins of the Justice League.,61,7
+61_8,Who are the important members?,61,8
+69_1,How do you sleep after jet lag?,69,1
+69_2,Does melatonin help?,69,2
+69_3,How was it discovered?,69,3
+69_4,What are good sources in food?,69,4
+69_5,Is melatonin bad for you?,69,5
+69_6,What are the side effects?,69,6
+69_7,Why does it require a prescription in the UK?,69,7
+69_8,How can I increase my levels naturally?,69,8
+69_9,Is it effective for treating insomnia?,69,9
+69_10,How about for anxiety?,69,10
+75_1,Why do turkey and Turkey share the same name?,75,1
+75_2,Where are turkeys from?,75,2
+75_3,What was their importance in native cultures?,75,3
+75_4,When and how were they domesticated?,75,4
+75_5,Can they fly?,75,5
+75_6,Why did Ben Franklin want it to be the national symbol?,75,6
+75_8,Why is it eaten on Thanksgiving?,75,8
+79_1,What is taught in sociology?,79,1
+79_2,What is the main contribution of Auguste Comte?,79,2
+79_3,What is the role of positivism in it?,79,3
+79_4,What is Herbert Spencer known for?,79,4
+79_5,How is his work related to Comte?,79,5
+79_6,What is the functionalist theory?,79,6
+79_7,What is its main criticism?,79,7
+79_8,How does it compare to conflict theory?,79,8
+79_9,What are modern examples of conflict theory?,79,9
+82_1,I would like to learn about GMO Food labeling.,82,1
+82_2,What are the pros and cons?,82,2
+82_3,And what about the cons?,82,3
+82_4,What are the EU rules?,82,4
+82_5,Tell me more about traceability tools.,82,5
+82_6,What is the role of Co-Extra?,82,6
+82_7,How is testing done for contamination?,82,7
+82_8,What's the difference between the European and US approaches?,82,8
+82_9,How does the DNA-based method work?,82,9
+82_10,How could Co-Extra improve it?,82,10
+83_1,What are some interesting facts about bees?,83,1
+83_2,Why doesn't it spoil?,83,2
+83_3,Why are so many dying?,83,3
+83_4,What can be done to stop it?,83,4
+83_5,What has happened to their habitat?,83,5
+83_6,What can I do to help with the problem?,83,6
+83_7,What is the cause of CCD?,83,7
+83_8,What would happen if they died out?,83,8
+84_1,How does seed investment work for startups?,84,1
+84_2,Tell me more about angel rounds.,84,2
+84_3,How does it compare with crowdfunding?,84,3
+84_4,How much is a typical A series round?,84,4
+84_5,What are the risks of investing?,84,5
+84_6,What are the different types of instruments used by VCs?,84,6
+85_1,How much does a used Lamborghini cost?,85,1
+85_2,How does it compare to a Ferrari?,85,2
+85_3,Interesting. What about for a pimped-out food truck?,85,3
+85_4,What licenses and permits are needed?,85,4
+85_5,What makes a good location?,85,5
+85_6,What is a typical day like?,85,6
+85_7,How can I run it successfully?,85,7
+85_8,What are some good examples to learn from?,85,8
+85_9,"Besides inventive flavors, what made it successful?",85,9
+86_1,What is the climate like in Utah?,86,1
+86_2,How does Salt Lake City differ?,86,2
+86_3,What is its main economic activity?,86,3
+86_4,What was the impact of the 2002 games?,86,4
+86_5,What were important ski locations used?,86,5
+86_6,What are the important non-ski events that happen in the city?,86,6
+86_7,What about some popular non-winter things to do in the area?,86,7
+90_1,Which is the biggest commercial plane?,90,1
+90_2,What are its operational costs?,90,2
+90_3,How does its fuel consumption compare to its competitors?,90,3
+90_4,How do the freighter versions compare to each other?,90,4
+90_5,Why did the A380 stop being produced?,90,5
+90_6,What was Boeing's response to compete with it?,90,6
+90_7,What is the newest version and what is better about it?,90,7
+90_8,What are the differences between the variants?,90,8
+91_1,What is the purpose of GDPR?,91,1
+91_2,What is different compared to previous legislation?,91,2
+91_3,What are the privacy implications of those technologies?,91,3
+91_4,"Oh, IP addresses are considered PII? What is the full range of personal data?",91,4
+91_5,How do big companies adapt to GDPR?,91,5
+91_6,OK. Tell me about the privacy issues in social networks.,91,6
+91_7,What do they get in return for their privacy?,91,7
+91_8,What are the symptoms of that addiction?,91,8
+92_1,Do shoulder braces help recover from an injury?,92,1
+92_2,Tell me more about some exercises that could help.,92,2
+92_3,What are some others?,92,3
+92_4,How do I know if it's serious?,92,4
+92_5,When should you consider surgery?,92,5
+92_6,That seems extreme. What are other ways to treat the pain?,92,6
+92_7,How do I stop it from hurting at my desk?,92,7
+96_1,How do you make Japanese Yakiniku?,96,1
+96_3,What are the best Yakiniku restaurants in Tokyo?,96,3
+96_4,Tell me about three star Michelin sushi restaurants there.,96,4
+96_5,Oh you need an agent to make reservations?,96,5
+96_6,Tell me other fun things to do there.,96,6
+96_7,What is the cost of living there compared to NYC?,96,7
+96_8,What is the salary of foreign law firms there?,96,8
+101_1,What is Melania Trump's religion?,101,1
+101_2,What did she do before she was married?,101,2
+101_3,Does she have children?,101,3
+101_4,How old is he?,101,4
+101_5,They met at the Kit Kat Club?  Where is that?,101,5
+101_6,When did she become a model?,101,6
+101_7,Do we pay the First Lady?,101,7
+101_8,What about Ivanka?,101,8
+101_9,And Jared?,101,9
+101_10,What does he do at the White House?,101,10
+103_1,Why were the Dead such an influential live band?,103,1
+103_2,Why did they allow live recordings?,103,2
+103_3,Did they have a #1 hit?,103,3
+103_4,Who was the leader?,103,4
+103_5,How did he lose his finger?,103,5
+103_6,What was his relationship to the Airplane?,103,6
+103_8,Who wrote it?,103,8
+103_9,What else did they write?,103,9
+103_10,Why did the band break up?,103,10
+104_1,Who are some of the well-known Information Retrieval researchers?,104,1
+104_3,Who are some important British ones?,104,3
+104_4,What did his studies contribute to evaluation?,104,4
+104_6,How did they influence modern initiatives?,104,6
+104_7,What is TREC?,104,7
+104_8,What are some recent tasks?,104,8
+104_9,e-Discovery?  What's that?,104,9
+104_10,What are the important components of a test collection?,104,10
+104_12,What are important measures for web search engines?,104,12
+104_13,What about online ones?,104,13
+105_1,When did the Black Lives Matter campaign begin?,105,1
+105_2,Tell me more about what happened.,105,2
+105_3,Why was he acquitted?,105,3
+105_4,And how about what happened to Brown?,105,4
+105_5,Who named the movement?,105,5
+105_6,What was the US reaction to it?,105,6
+105_7,Tell me more about the movement of the police supporters.,105,7
+105_8,Why were they killed?,105,8
+105_9,What else motivates the Black Lives Matter movement?,105,9
