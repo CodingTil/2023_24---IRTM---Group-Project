@@ -6,6 +6,7 @@ import indexer.index as index_module
 
 index = None
 
+
 def process_input(input_str: str) -> str:
     """
     Process the input string.
@@ -57,4 +58,3 @@ def main() -> None:
         if user_input.strip():
             output = process_input(user_input)
             console.print(output, style=Style(italic=True))
-

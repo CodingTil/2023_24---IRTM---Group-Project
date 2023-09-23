@@ -8,7 +8,8 @@ import pandas as pd
 DATA_PATH = resource_filename(__name__, "../../data/collection.tsv")
 INDEX_PATH = resource_filename(__name__, "../../data/index")
 
-def get_index(*, recreate: bool=False):
+
+def get_index(*, recreate: bool = False):
     """
     Return a PyTerrier Index.
 
@@ -34,6 +35,7 @@ def get_index(*, recreate: bool=False):
         index_ref = pt.IndexRef.of(os.path.join(INDEX_PATH, "data.properties"))
     return pt.IndexFactory.of(index_ref)
 
+
 def create_index() -> pt.IndexRef:
     """
     Create a PyTerrier index using the document collection.
@@ -53,9 +55,8 @@ def create_index() -> pt.IndexRef:
 
     # Load the dataset
     dataset = pd.read_csv(DATA_PATH, sep="\t", header=None, names=["docno", "text"])
-    dataset['docno'] = dataset['docno'].astype(str)
+    dataset["docno"] = dataset["docno"].astype(str)
 
     # Create an index
     index = pt.DFIndexer(INDEX_PATH)
     return index.index(dataset.text, dataset.docno)
-

@@ -3,6 +3,7 @@ import pyterrier as pt
 
 import interface.cli as cli_module
 
+
 def setup() -> None:
     """
     Set up the necessary configurations.
@@ -12,10 +13,17 @@ def setup() -> None:
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Entry point for the Conversational Search Engine (CSE)")
-    
+    parser = argparse.ArgumentParser(
+        description="Entry point for the Conversational Search Engine (CSE)"
+    )
+
     # Define the command argument
-    parser.add_argument('command', type=str, choices=['cli'], help='Command to run (e.g., "cli" for command line interface)')
+    parser.add_argument(
+        "command",
+        type=str,
+        choices=["cli"],
+        help='Command to run (e.g., "cli" for command line interface)',
+    )
 
     args = parser.parse_args()
 
@@ -29,4 +37,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
