@@ -1,3 +1,6 @@
+import logging
+import string
+
 from rich.prompt import Prompt
 from rich.style import Style
 from rich.console import Console
@@ -12,7 +15,7 @@ index = None
 pipeline: pt.Transformer
 
 
-def process_input(input_str: str) -> str:
+def process_input(input_str: str, *, top_n: int) -> str:
     """
     Process the input string.
     For now, just return the same string.
@@ -21,6 +24,8 @@ def process_input(input_str: str) -> str:
     ----------
     input_str : str
         The unprocessed user input string (query).
+    top_n : int
+        The number of top-ranked documents to return.
 
     Returns
     -------
@@ -30,24 +35,32 @@ def process_input(input_str: str) -> str:
     global index
     global pipeline
 
+    # remove punctuation
+    input_str = input_str.translate(str.maketrans("", "", string.punctuation))
+
     result = pipeline.search(input_str)
 
     if result.empty:
         return "No Results Found"
 
-    # Get the docno of the top-ranked document
-    top_docno = int(result.iloc[0]["docno"])
+    # Get the docno of the top_n top-ranked documents
+    top_docs = result["docno"].head(top_n).tolist()
+    top_docs = [int(docno) for docno in top_docs]
+
+    logging.info(f"Top {top_n} Documents: {top_docs}")
 
     # Get the document content
-    doc_content = index_module.get_document_content(top_docno)
+    contents = index_module.get_documents_content(top_docs)
 
-    if doc_content is None:
-        return "Internal Error: Top Document was not Found"
+    contents = [c for c in contents if c is not None]
 
-    return doc_content
+    if len(contents) == 0:
+        return "Internal Error: Top Document was not found"
+
+    return "\n".join(contents)
 
 
-def main(*, recreate: bool) -> None:
+def main(*, recreate: bool, top_n: int) -> None:
     """
     The main function of the CLI interface.
 
@@ -55,6 +68,8 @@ def main(*, recreate: bool) -> None:
     ----------
     recreate : bool
         Whether to recreate the index.
+    top_n : int
+        The number of top-ranked documents to return.
     """
     global index
     global pipeline
@@ -84,5 +99,5 @@ def main(*, recreate: bool) -> None:
 
         # Check if user input is non-empty
         if user_input.strip():
-            output = process_input(user_input)
+            output = process_input(user_input, top_n=top_n)
             console.print(output, style=Style(italic=True))

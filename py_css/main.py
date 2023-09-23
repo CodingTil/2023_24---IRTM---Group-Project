@@ -43,6 +43,14 @@ def main():
         help="Recreate the index",
     )
 
+    # --top_n=123 for the number of top-ranked documents to return
+    parser.add_argument(
+        "--top_n",
+        type=int,
+        default=3,
+        help="The number of top-ranked documents to return",
+    )
+
     args = parser.parse_args()
 
     # Log Level
@@ -53,7 +61,7 @@ def main():
 
     # Check the provided command and act accordingly
     if args.command == "cli":
-        cli_module.main(recreate=args.recreate)
+        cli_module.main(recreate=args.recreate, top_n=args.top_n)
 
 
 if __name__ == "__main__":
