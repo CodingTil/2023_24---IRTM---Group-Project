@@ -17,5 +17,5 @@ py_css
 
 Otherwise, the equivalent can be achieved by navigating into the repository and running the following:
 ```bash
-python py_css/interface/cli.py
+python py_css/main.py
 ```

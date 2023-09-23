@@ -2,6 +2,9 @@ from rich.prompt import Prompt
 from rich.style import Style
 from rich.console import Console
 
+import indexer.index as index_module
+
+index = None
 
 def process_input(input_str: str) -> str:
     """
@@ -18,13 +21,18 @@ def process_input(input_str: str) -> str:
     str
         The output to be shown to the user.
     """
-    return input_str
+    global index
+    # append some random statistic of the index
+    return input_str + "\n" + index.getCollectionStatistics().toString()
 
 
 def main() -> None:
     """
     The main function of the CLI interface.
     """
+    global index
+    index = index_module.get_index(recreate=False)
+
     # Initialize the rich console
     console = Console()
 
@@ -50,6 +58,3 @@ def main() -> None:
             output = process_input(user_input)
             console.print(output, style=Style(italic=True))
 
-
-if __name__ == "__main__":
-    main()

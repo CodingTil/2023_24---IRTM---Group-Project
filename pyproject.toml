@@ -10,7 +10,8 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 requires = [
-    "rich"
+    "rich",
+    "python-terrier"
 ]
 
 [build-system]
@@ -18,5 +19,12 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project.scripts]
-py_css = "py_css.interface.cli:main"
+py_css = "py_css.main:main"
+
+[tool.hatch.build.targets.wheel]
+only-include = ["py_css", "data"]
+
+[tool.hatch.build.targets.wheel.sources]
+"py_css" = "py_css"
+"data" = "py_css/data"
 
