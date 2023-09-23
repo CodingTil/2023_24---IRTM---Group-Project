@@ -1,5 +1,4 @@
 import logging
-import string
 
 from rich.prompt import Prompt
 from rich.style import Style
@@ -34,9 +33,6 @@ def process_input(input_str: str, *, top_n: int) -> str:
     """
     global index
     global pipeline
-
-    # remove punctuation
-    input_str = input_str.translate(str.maketrans("", "", string.punctuation))
 
     result = pipeline.search(input_str)
 
