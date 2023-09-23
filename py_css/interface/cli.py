@@ -2,9 +2,14 @@ from rich.prompt import Prompt
 from rich.style import Style
 from rich.console import Console
 
+import pyterrier as pt
+
 import indexer.index as index_module
+import models.baseline as baseline_module
 
 index = None
+
+pipeline: pt.Transformer
 
 
 def process_input(input_str: str) -> str:
@@ -23,16 +28,39 @@ def process_input(input_str: str) -> str:
         The output to be shown to the user.
     """
     global index
-    # append some random statistic of the index
-    return input_str + "\n" + index.getCollectionStatistics().toString()
+    global pipeline
+
+    result = pipeline.search(input_str)
+
+    if result.empty:
+        return "No Results Found"
+
+    # Get the docno of the top-ranked document
+    top_docno = int(result.iloc[0]["docno"])
+
+    # Get the document content
+    doc_content = index_module.get_document_content(top_docno)
+
+    if doc_content is None:
+        return "Internal Error: Top Document was not Found"
+
+    return doc_content
 
 
-def main() -> None:
+def main(*, recreate: bool) -> None:
     """
     The main function of the CLI interface.
+
+    Parameters
+    ----------
+    recreate : bool
+        Whether to recreate the index.
     """
     global index
-    index = index_module.get_index(recreate=False)
+    global pipeline
+
+    index = index_module.get_index(recreate=recreate)
+    pipeline = baseline_module.create_pipeline(index)
 
     # Initialize the rich console
     console = Console()
