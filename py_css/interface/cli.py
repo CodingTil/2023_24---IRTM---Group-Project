@@ -7,11 +7,13 @@ from rich.console import Console
 import pyterrier as pt
 
 import indexer.index as index_module
+import models.base as base_module
 import models.baseline as baseline_module
 
 index = None
+pipeline: base_module.Pipeline
 
-pipeline: pt.Transformer
+context: base_module.Context = []
 
 
 def process_input(input_str: str, *, top_n: int) -> str:
@@ -33,22 +35,28 @@ def process_input(input_str: str, *, top_n: int) -> str:
     """
     global index
     global pipeline
+    global context
 
-    result = pipeline.search(input_str)
+    new_query_id = len(context) + 1
+    new_query = base_module.Query(f"q_{new_query_id}", input_str)
 
-    if result.empty:
+    # Search for the query
+    context, _ = pipeline.search(new_query, context)
+
+    # Get the top_n top-ranked documents
+    result = context[-1][1]
+
+    if result is None or len(result) == 0:
         return "No Results Found"
 
+    result = result[:top_n]
+
     # Get the docno of the top_n top-ranked documents
-    top_docs = result["docno"].head(top_n).tolist()
-    top_docs = [int(docno) for docno in top_docs]
+    top_docs = [int(r.docno) for r in result]
 
     logging.info(f"Top {top_n} Documents: {top_docs}")
 
-    # Get the document content
-    contents = index_module.get_documents_content(top_docs)
-
-    contents = [c for c in contents if c is not None]
+    contents = [r.content for r in result]
 
     if len(contents) == 0:
         return "Internal Error: Top Document was not found"
@@ -71,7 +79,7 @@ def main(*, recreate: bool, top_n: int) -> None:
     global pipeline
 
     index = index_module.get_index(recreate=recreate)
-    pipeline = baseline_module.create_pipeline(index)
+    pipeline = baseline_module.Baseline(index)
 
     # Initialize the rich console
     console = Console()
