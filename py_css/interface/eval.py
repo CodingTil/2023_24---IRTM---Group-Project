@@ -3,10 +3,11 @@ import logging
 import pyterrier as pt
 
 import indexer.index as index_module
+import models.base as base_model
 import models.baseline as baseline_module
 
 index = None
-pipeline: pt.Transformer
+pipeline: base_model.Pipeline
 
 
 def main(*, recreate: bool, queries_file_path: str, qrels_file_path: str) -> None:
@@ -26,4 +27,4 @@ def main(*, recreate: bool, queries_file_path: str, qrels_file_path: str) -> Non
     global pipeline
 
     index = index_module.get_index(recreate=recreate)
-    pipeline = baseline_module.create_pipeline(index)
+    pipeline = baseline_module.Baseline(index)
