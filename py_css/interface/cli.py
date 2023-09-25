@@ -4,8 +4,6 @@ from rich.prompt import Prompt
 from rich.style import Style
 from rich.console import Console
 
-import pyterrier as pt
-
 import indexer.index as index_module
 import models.base as base_module
 import models.baseline as baseline_module

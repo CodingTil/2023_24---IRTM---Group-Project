@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
+import logging
 from typing import Optional, List, Tuple, TypeAlias
 
 import pandas as pd
@@ -161,10 +162,11 @@ class Pipeline(ABC):
         Tuple[Context, pd.DataFrame]
             The updated context and the result of the search.
         """
-        result: pd.DataFrame = pd.DataFrame()
+        results: List[pd.DataFrame] = []
         for query in queries:
             context, result = self.search(query, context)
-        return context, result
+            results.append(result)
+        return context, pd.concat(results)
 
     def batch_search_conversation(
         self, inputs: List[Tuple[List[Query], Context]]
@@ -182,7 +184,7 @@ class Pipeline(ABC):
         Tuple[List[Context], pd.DataFrame]
             The updated contexts and the result of the search.
         """
-        result: pd.DataFrame = pd.DataFrame()
+        results: List[pd.DataFrame] = []
         all_contexts: List[Context] = [context for _, context in inputs]
 
         max_len = max(
@@ -211,5 +213,8 @@ class Pipeline(ABC):
             # Update the results and contexts
             for i, context in zip(ids, updated_contexts):
                 all_contexts[i] = context
+            results.append(result)
 
-        return all_contexts, result
+            logging.info(f"Processed {idx+1}/{max_len} positions")
+
+        return all_contexts, pd.concat(results)
