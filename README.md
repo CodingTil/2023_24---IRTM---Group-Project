@@ -24,3 +24,9 @@ python py_css/main.py cli
 ```bash
 python py_css/main.py run_file --log=INFO --queries=data/queries_train.csv --output=output/train.txt
 ```
+
+### Run Queries and Evaluate Performance
+```bash
+python py_css/main.py eval --log=INFO --queries=data/queries_train.csv --qrels=data/qrels_train.txt
+```
+

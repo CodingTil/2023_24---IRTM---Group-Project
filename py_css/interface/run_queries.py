@@ -32,7 +32,7 @@ def to_trec_runfile_format(df: pd.DataFrame, model_name: str) -> str:
     """
     return "\n".join(
         [
-            f"{row['qid']} Q0 {row['docno']} {row['rank']} {row['score']} {model_name}"
+            f"{row['qid']} Q0 {row['docno']} {int(row['rank']) + 1} {row['score']} {model_name}"
             for _, row in df.iterrows()
         ]
     )
@@ -76,9 +76,6 @@ def main(*, recreate: bool, queries_file_path: str, output_file_path: str) -> No
 
     logging.info("Running queries...")
     _, results = pipeline.batch_search_conversation(inputs)
-    print(results)
-    # column names of the dataframe
-    print(results.columns)
 
     logging.info("Writing results...")
     # create file and parent directories if not exist

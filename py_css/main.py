@@ -5,6 +5,7 @@ import pyterrier as pt
 
 import interface.cli as cli_module
 import interface.run_queries as run_queries_module
+import interface.eval as eval_module
 
 
 def setup() -> None:
@@ -33,7 +34,7 @@ def main():
     parser.add_argument(
         "command",
         type=str,
-        choices=["cli", "run_file"],
+        choices=["cli", "run_file", "eval"],
         help='Command to run (e.g., "cli" for command line interface)',
     )
 
@@ -65,6 +66,13 @@ def main():
         help="The path to the output file",
     )
 
+    # Command eval with argument --queries=filepath --qrels=filepath
+    parser.add_argument(
+        "--qrels",
+        type=str,
+        help="The path to the qrels file",
+    )
+
     args = parser.parse_args()
 
     # Log Level
@@ -81,6 +89,12 @@ def main():
             recreate=args.recreate,
             queries_file_path=args.queries,
             output_file_path=args.output,
+        )
+    elif args.command == "eval":
+        eval_module.main(
+            recreate=args.recreate,
+            queries_file_path=args.queries,
+            qrels_file_path=args.qrels,
         )
 
 
