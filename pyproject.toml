@@ -11,7 +11,10 @@ classifiers = [
 ]
 requires = [
     "rich",
-    "python-terrier"
+    "python-terrier",
+    "pyterrier-t5@git+https://github.com/terrierteam/pyterrier_t5.git",
+    "torch",
+    "transformers[torch]"
 ]
 
 [build-system]

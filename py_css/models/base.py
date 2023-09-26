@@ -104,6 +104,8 @@ class Pipeline(ABC):
         query_str = self.transform_input(query, context)
         result = self.pipeline.search(query_str)
 
+        query.query = result["query"][0]
+
         doc_list: List[Document] = []
         for _, entry in result.iterrows():
             doc_list.append(Document(entry["docno"], entry["text"]))
@@ -129,9 +131,15 @@ class Pipeline(ABC):
             The updated contexts and the result of the search.
         """
         query_df = pd.DataFrame(
-            [{"qid": q.query_id, "query": q.query} for q, _ in inputs]
+            [
+                {"qid": q.query_id, "query": self.transform_input(q, c)}
+                for q, c in inputs
+            ]
         )
         result = self.pipeline.transform(query_df)
+
+        for query, _ in inputs:
+            query.query = result[result["qid"] == query.query_id]["query"].iloc[0]
 
         contexts: List[Context] = []
         for query, context in inputs:
