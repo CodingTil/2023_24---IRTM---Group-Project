@@ -1,6 +1,7 @@
 import models.base as base_module
 
 import string
+import logging
 
 import pyterrier as pt
 import pandas as pd
@@ -101,7 +102,7 @@ class T5Rewriter(pt.Transformer):
             lambda qid: decoded_output_token_ids[qid]
         )
 
-        # print unique queries
-        print(topics_or_res["query"].unique())
+        # as logging
+        logging.info(f"Rewritten queries: {topics_or_res['query'].unique()}")
 
         return topics_or_res

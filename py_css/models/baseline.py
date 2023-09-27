@@ -1,35 +1,29 @@
 import models.base as base_module
 import models.T5Rewriter as t5_rewriter
 
-import pyterrier as pt
+from typing import List, Optional, Tuple
 
-# from pyterrier_t5 import MonoT5ReRanker, DuoT5ReRanker
+import pandas as pd
+import pyterrier as pt
+from pyterrier_t5 import MonoT5ReRanker, DuoT5ReRanker
 
 
 class Baseline(base_module.Pipeline):
-    pipeline: pt.Transformer
+    stages: List[Tuple[pt.Transformer, int]]
 
     def __init__(self, index):
-        # tokenizer = pt.rewrite.tokenise()
-        # sdm = pt.rewrite.SequentialDependence()
         t5_qr = t5_rewriter.T5Rewriter(index)
         bm25 = pt.BatchRetrieve(index, wmodel="BM25", metadata=["docno", "text"])
-        bo1 = pt.rewrite.Bo1QueryExpansion(index)
-        pl2 = pt.BatchRetrieve(index, wmodel="PL2", metadata=["docno", "text"])
-        # mono_t5 = MonoT5ReRanker()
-        # duo_t5 = DuoT5ReRanker()
-        pipeline = (
-            # tokenizer
-            # >> sdm
-            t5_qr
-            >> (bm25 % 1000).compile()
-            >> bo1
-            >> pl2
-            # >> pt.text.get_text(index, "text")
-            # >> (mono_t5 % 1000)
-            # >> duo_t5
-        )
-        super().__init__(pipeline)
+        mono_t5 = MonoT5ReRanker()
+        duo_t5 = DuoT5ReRanker()
+
+        top_docs = t5_qr >> bm25
+
+        self.stages = [
+            (top_docs, 1000),
+            (mono_t5, 100),
+            (duo_t5, 10),
+        ]
 
     def transform_input(
         self, query: base_module.Query, context: base_module.Context
@@ -44,3 +38,22 @@ class Baseline(base_module.Pipeline):
         history.append(query.query)
         new_query = " <sep> ".join(history)
         return new_query
+
+    def transform(self, query_df: pd.DataFrame) -> pd.DataFrame:
+        results = []
+        current_df = query_df
+
+        is_first: bool = True
+
+        for stage, num_docs in self.stages:
+            df = current_df
+            if not is_first:
+                df = df.groupby("qid").head(num_docs)
+            else:
+                is_first = False
+            transformed_df = stage.transform(df)
+            transformed_df = transformed_df.groupby("qid").head(num_docs)
+            results.append(transformed_df)
+            current_df = transformed_df
+
+        return self.combine_result_stages(results)

@@ -61,11 +61,6 @@ class Pipeline(ABC):
     Abstract base class for all pipelines.
     """
 
-    pipeline: pt.Transformer
-
-    def __init__(self, pipeline: pt.Transformer):
-        self.pipeline = pipeline
-
     @abstractmethod
     def transform_input(self, query: Query, context: Context) -> str:
         """
@@ -85,6 +80,93 @@ class Pipeline(ABC):
         """
         ...
 
+    @abstractmethod
+    def transform(self, query_df: pd.DataFrame) -> pd.DataFrame:
+        """
+        Transform the input queries.
+
+        Parameters
+        ----------
+        query_df : pd.DataFrame
+            The queries to be transformed.
+
+        Returns
+        -------
+        pd.DataFrame
+            The transformed queries.
+        """
+        ...
+
+    def combine_result_stages(self, results: List[pd.DataFrame]) -> pd.DataFrame:
+        """
+        Combine the results of the stages.
+
+        Parameters
+        ----------
+        results : List[pd.DataFrame]
+            The results of the stages.
+
+        Returns
+        -------
+        pd.DataFrame
+            The combined results.
+        """
+        epsilon = 0.0001
+
+        # Start with the rightmost dataframe as the base
+        combined_res = results[-1].copy()
+
+        for res in reversed(
+            results[:-1]
+        ):  # For each remaining dataframe from right to left
+            # Identify the lowest score for each query in combined_res
+            last_scores = (
+                combined_res[["qid", "score"]]
+                .groupby("qid")
+                .min()
+                .rename(columns={"score": "_lastscore"})
+            )
+
+            # Find the intersection of documents between current res and combined_res
+            intersection = pd.merge(
+                combined_res[["qid", "docno"]], res[["qid", "docno"]].reset_index()
+            )
+            remainder = res.drop(intersection["index"])
+
+            # Identify the highest score for each query in remainder
+            first_scores = (
+                remainder[["qid", "score"]]
+                .groupby("qid")
+                .max()
+                .rename(columns={"score": "_firstscore"})
+            )
+
+            # Adjust the scores in remainder to ensure proper ordering
+            remainder = remainder.merge(last_scores, on=["qid"]).merge(
+                first_scores, on=["qid"]
+            )
+            remainder["score"] = (
+                remainder["score"]
+                - remainder["_firstscore"]
+                + remainder["_lastscore"]
+                - epsilon
+            )
+            remainder = remainder.drop(columns=["_lastscore", "_firstscore"])
+
+            # Concatenate remainder with combined_res and sort
+            combined_res = pd.concat([combined_res, remainder]).sort_values(
+                by=["qid", "score", "docno"], ascending=[True, False, True]
+            )
+
+        # Recompute the ranks
+        combined_res = combined_res.assign(
+            rank=combined_res.groupby("qid")["score"].rank(
+                method="first", ascending=False
+            )
+        )
+
+        return combined_res
+
     def search(self, query: Query, context: Context) -> Tuple[Context, pd.DataFrame]:
         """
         Search for the query.
@@ -102,9 +184,10 @@ class Pipeline(ABC):
             The updated context and the result of the search.
         """
         query_str = self.transform_input(query, context)
-        result = self.pipeline.search(query_str)
+        query_df = pd.DataFrame([{"qid": query.query_id, "query": query_str}])
+        result = self.transform(query_df)
 
-        query.query = result["query"][0]
+        query.query = result["query"].iloc[0]
 
         doc_list: List[Document] = []
         for _, entry in result.iterrows():
@@ -136,7 +219,7 @@ class Pipeline(ABC):
                 for q, c in inputs
             ]
         )
-        result = self.pipeline.transform(query_df)
+        result = self.transform(query_df)
 
         for query, _ in inputs:
             query.query = result[result["qid"] == query.query_id]["query"].iloc[0]
