@@ -1,7 +1,6 @@
-import models.base as base_module
-
 import string
 import logging
+from typing import List, Any, Callable
 
 import pyterrier as pt
 import pandas as pd
@@ -15,6 +14,19 @@ EARLY_STOPPING: bool = True
 
 
 class T5Rewriter(pt.Transformer):
+    """
+    T5 Query Rewriter set up as a PyTerrier Transformer.
+
+    Attributes
+    ----------
+    device : torch.device
+        The device to use.
+    tokenizer : T5Tokenizer
+        The tokenizer to use.
+    model : T5ForConditionalGeneration
+        The model to use.
+    """
+
     device: torch.device
     tokenizer: T5Tokenizer
     model: T5ForConditionalGeneration
@@ -30,7 +42,10 @@ class T5Rewriter(pt.Transformer):
         super().__init__()
 
     # the query has multiply " <sep> " in it. Create a list of the split with a maximum of 3 elements (last element is last, second last is middle, and the first n are joined)
-    def split_query_tokenize_join(self, q):
+    def __split_query_tokenize_join(self, q):
+        """
+        Split the query, tokenize the parts, and join them back together.
+        """
         l = q.split(" <sep> ")
         if len(l) < 3:
             tokens = []
@@ -49,12 +64,18 @@ class T5Rewriter(pt.Transformer):
             tokens.extend(self.tokenizer.tokenize(l[-1]))
             return tokens
 
-    def get_input_token_ids(self, tokens):
+    def __get_input_token_ids(self, tokens):
+        """
+        Get the input token ids.
+        """
         return self.tokenizer.encode(
             tokens, return_tensors="pt", add_special_tokens=True
         ).to(self.device)
 
-    def get_output_token_ids(self, input_token_ids):
+    def __get_output_token_ids(self, input_token_ids):
+        """
+        Get the output token ids.
+        """
         return self.model.generate(
             input_token_ids,
             max_length=MAX_LENGTH,
@@ -62,47 +83,62 @@ class T5Rewriter(pt.Transformer):
             early_stopping=EARLY_STOPPING,
         )
 
-    def decode_token_ids(self, token_ids):
+    def __decode_token_ids(self, token_ids):
+        """
+        Decode the token ids.
+        """
         return self.tokenizer.decode(
             token_ids[0], skip_special_tokens=True, clean_up_tokenization_spaces=True
         )
 
-    def remove_punctuation(self, s):
+    def __remove_punctuation(self, s):
+        """
+        Remove punctuation from a string.
+        """
         return s.translate(str.maketrans("", "", string.punctuation))
 
     def transform(self, topics_or_res: pd.DataFrame) -> pd.DataFrame:
         # save qid and query columns as dict (qid -> query) query is same for same qid, so sufficient to select first
         qid_query_dict = dict(zip(topics_or_res["qid"], topics_or_res["query"]))
-        # tokenize the query
-        tokenized_queries = {
-            qid: self.split_query_tokenize_join(q) for qid, q in qid_query_dict.items()
-        }
-        # get input token ids
-        input_token_ids = {
-            qid: self.get_input_token_ids(tokens)
-            for qid, tokens in tokenized_queries.items()
-        }
-        # get output token ids
-        output_token_ids = {
-            qid: self.get_output_token_ids(token_ids)
-            for qid, token_ids in input_token_ids.items()
-        }
-        # decode output token ids
-        decoded_output_token_ids = {
-            qid: self.decode_token_ids(token_ids)
-            for qid, token_ids in output_token_ids.items()
-        }
-        # remove punctuation from decoded output token ids
-        decoded_output_token_ids = {
-            qid: self.remove_punctuation(s)
-            for qid, s in decoded_output_token_ids.items()
+
+        pipeline: List[Callable] = [
+            self.__split_query_tokenize_join,
+            self.__get_input_token_ids,
+            self.__get_output_token_ids,
+            self.__decode_token_ids,
+            self.__remove_punctuation,
+        ]
+
+        rewritten_queries = {
+            qid: _call_list_of_functions(q, pipeline)
+            for qid, q in qid_query_dict.items()
         }
         # overwrite the query column with the decoded output token ids
         topics_or_res["query"] = topics_or_res["qid"].map(
-            lambda qid: decoded_output_token_ids[qid]
+            lambda qid: rewritten_queries[qid]
         )
 
-        # as logging
         logging.info(f"Rewritten queries: {topics_or_res['query'].unique()}")
 
         return topics_or_res
+
+
+def _call_list_of_functions(x: Any, pipeline: List[Callable]) -> Any:
+    """
+    Call a list of functions on an input.
+
+    Parameters
+    ----------
+    x : Any
+        The input.
+    pipeline : List[Callable]
+        The list of functions to call.
+
+    Returns
+    -------
+    Any
+        The output of the last function.
+    """
+    for f in pipeline:
+        x = f(x)
+    return x

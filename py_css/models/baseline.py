@@ -1,7 +1,7 @@
 import models.base as base_module
 import models.T5Rewriter as t5_rewriter
 
-from typing import List, Optional, Tuple
+from typing import List, Tuple
 
 import pandas as pd
 import pyterrier as pt
@@ -9,9 +9,38 @@ from pyterrier_t5 import MonoT5ReRanker, DuoT5ReRanker
 
 
 class Baseline(base_module.Pipeline):
+    """
+    A class to represent the baseline retrieval method.
+
+    Attributes
+    ----------
+    stages : List[Tuple[pt.Transformer, int]]
+        The stages of the pipeline.
+    """
+
     stages: List[Tuple[pt.Transformer, int]]
 
-    def __init__(self, index):
+    def __init__(
+        self,
+        index,
+        bm25_docs: int = 1000,
+        mono_t5_docs: int = 100,
+        duo_t5_docs: int = 10,
+    ):
+        """
+        Constructs all the necessary attributes for the baseline retrieval method.
+
+        Parameters
+        ----------
+        index : pt.Index
+            The PyTerrier index.
+        bm25_docs : int
+            The number of documents to retrieve with BM25.
+        mono_t5_docs : int
+            The number of documents to retrieve with MonoT5.
+        duo_t5_docs : int
+            The number of documents to retrieve with DuoT5.
+        """
         t5_qr = t5_rewriter.T5Rewriter(index)
         bm25 = pt.BatchRetrieve(index, wmodel="BM25", metadata=["docno", "text"])
         mono_t5 = MonoT5ReRanker()
@@ -20,9 +49,9 @@ class Baseline(base_module.Pipeline):
         top_docs = t5_qr >> bm25
 
         self.stages = [
-            (top_docs, 1000),
-            (mono_t5, 100),
-            (duo_t5, 10),
+            (top_docs, bm25_docs),
+            (mono_t5, mono_t5_docs),
+            (duo_t5, duo_t5_docs),
         ]
 
     def transform_input(
@@ -40,6 +69,7 @@ class Baseline(base_module.Pipeline):
         return new_query
 
     def transform(self, query_df: pd.DataFrame) -> pd.DataFrame:
+        # We basically do the pyterrier Concatenate transformer operator here, but more efficiently, since we dont have to do the entire pipeline for each component of the operator.
         results = []
         current_df = query_df
 

@@ -1,4 +1,5 @@
 import logging
+from typing import Tuple
 
 from rich.prompt import Prompt
 from rich.style import Style
@@ -62,7 +63,7 @@ def process_input(input_str: str, *, top_n: int) -> str:
     return "\n".join(contents)
 
 
-def main(*, recreate: bool, top_n: int) -> None:
+def main(*, recreate: bool, top_n: int, baseline_params: Tuple[int, int, int]) -> None:
     """
     The main function of the CLI interface.
 
@@ -72,12 +73,16 @@ def main(*, recreate: bool, top_n: int) -> None:
         Whether to recreate the index.
     top_n : int
         The number of top-ranked documents to return.
+    baseline_params : Tuple[int, int, int]
+        The parameters for the baseline model.
     """
     global index
     global pipeline
 
     index = index_module.get_index(recreate=recreate)
-    pipeline = baseline_module.Baseline(index)
+    pipeline = baseline_module.Baseline(
+        index, baseline_params[0], baseline_params[1], baseline_params[2]
+    )
 
     # Initialize the rich console
     console = Console()

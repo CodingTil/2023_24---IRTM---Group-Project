@@ -15,7 +15,13 @@ index = None
 pipeline: base_model.Pipeline
 
 
-def main(*, recreate: bool, queries_file_path: str, qrels_file_path: str) -> None:
+def main(
+    *,
+    recreate: bool,
+    queries_file_path: str,
+    qrels_file_path: str,
+    baseline_params: Tuple[int, int, int],
+) -> None:
     """
     The main function of the eval interface.
 
@@ -27,15 +33,16 @@ def main(*, recreate: bool, queries_file_path: str, qrels_file_path: str) -> Non
         The path to the queries file.
     qrels_file_path : str
         The path to the qrels file.
+    baseline_params : Tuple[int, int, int]
+        The parameters for the baseline model.
     """
     global index
     global pipeline
 
     index = index_module.get_index(recreate=recreate)
-    pipeline = baseline_module.Baseline(index)
-
-    index = index_module.get_index(recreate=recreate)
-    pipeline = baseline_module.Baseline(index)
+    pipeline = baseline_module.Baseline(
+        index, baseline_params[0], baseline_params[1], baseline_params[2]
+    )
 
     logging.info("Loading queries...")
     queries: Dict[int, Dict[int, base_model.Query]] = {}  # topic_id -> (turn_id, query)
