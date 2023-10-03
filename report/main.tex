@@ -7,6 +7,7 @@
 \usepackage{dblfloatfix}
 \usepackage{mathtools}
 \usepackage{hyperref}
+\usepackage[htt]{hyphenat}
 
 \begin{document}
 
@@ -27,7 +28,7 @@
 
 
 \begin{abstract}
-As part of our master's degree, we study information retrieval and text mining. This group project aims to design a system that addresses the problem of searching for passages within a conversation. This therefore consists of taking the context of the previous conversation history into account of the current user query, rewriting the current user query in a way that encompasses the conversation topic, selecting the most relevant passages to that rewritten query, through a collection of 8.8 million documents (MS MARCO passages). Based on the knowledge acquired on the subject, we present a baseline information retrieval pipeline, which will serve as our reference system for future comparisions with more advanced information retrieval pipelines. Afterwards, we dive into more advanced approaches in this field of conversational search engines. Finally, we make comparisons between the baseline system and the implemented advanced retrieval pipelines to highlight the positives and negatives of our implementations, and also draw conclusions.
+In our master's degree program, we delved into the realms of information retrieval and text mining. Our group project focuses on developing a system capable of searching for specific passages within a conversation. This entails considering the historical context of previous exchanges when interpreting the current user's query. The system reformulates the user's query to better align with the conversation's overarching topic and then seeks the most relevant passages from a vast collection of 8.8 million documents, specifically from the MS MARCO document collection. We initially create a baseline information retrieval pipeline, which serves as our foundational reference. We then explore advanced techniques and methods in the field of conversational search engines. Our report concludes with a comparative analysis between the baseline system and our advanced retrieval mechanisms, outlining the strengths and shortcomings of our approaches, and offering conclusions.
 \end{abstract}
 
 \keywords{information retrieval, conversational search engine, conversational search system}
@@ -46,42 +47,42 @@ As part of our master's degree, we study information retrieval and text mining. 
 
 
 \section{Introduction}\label{sec:intro}
-Nowadays, we can see a strong development of conversational agents like Amazon Alexa or Apple Siri. These conversational agents aim to communicate with a user and return relevant responses to the requests that the user formulates. The need to return the right information is important to ensure the quality of the responses sent to the user.
+With the rise of conversational agents like Amazon Alexa and Apple Siri, the ability to accurately and relevantly respond to user requests has become increasingly important. These agents are designed to interact fluidly with users, and the essence of their functionality rests on providing precise information in their responses.
 
-The goal of our project is to create a conversational search engine, i.e. a system where the user may ask multiple questions (queries), and the system takes the conversation history, e.g. the current topic of the conversation, as well as the current query into accout to determine the most relevant documents to the user. We will design a simple basic architecture which will serve as our baseline system for future comparision with more advanced approaches. However, as a hard requirement, this baseline retrieval pipeline must already perform at least as well as the reference system provided by our project owners.
+Our project centers on building a conversational search engine, a system that not only addresses the user's immediate question but also takes into account previous queries and the ongoing conversation's topic. This provides a more holistic approach to the user's information needs. Initially, we will construct a basic architecture, establishing our baseline system. This baseline will serve as a comparison point against more sophisticated techniques. It's required, however, that even this foundational system meets or exceeds the performance of the reference system set by our project guides.
 
-For this project, we will use the MS MARCO dataset, which contains 8.8 million documents. This document collection has to be indexed in order to be able to retrieve relevant documents efficiently. This indexing will be achieved through the \texttt{pyterrier} API.
+Our research will utilize the MS MARCO dataset, a comprehensive collection of 8.8 million documents. Efficiently retrieving relevant documents from this vast pool necessitates an indexing process, which we will execute using the \texttt{pyterrier} API.
 
-In section \ref{sec:problem} we will define the problem statement at hand. Following the problem statement, we will dive into the implementation of the different retrieval pipelines we have developed. In general, retrieval pipelines can be segmented into the following stages: Query rewriting, (multi-pass) retrieval, reranking. In sections \ref{sec:baseline} and \ref{sec:advanced}, we will present our baseline and advanced retrieval pipelines in aspects of these components, respectively. Finally, in section \ref{sec:results}, we will present the performance results of our retrieval pipelines and compare them to each other, highlighting any improvements and drawbacks of our advanced retrieval pipelines.
+Section \ref{sec:problem} will articulate the specific problem we aim to address. We will then elaborate on the methodologies behind our retrieval pipelines. Broadly, these pipelines can be broken down into stages: Query revision, single- or multi-pass retrieval, and reranking. Sections \ref{sec:baseline} and \ref{sec:advanced} will delve into our baseline and advanced techniques for each of these stages, respectively. Our report will conclude in section \ref{sec:results}, where we evaluate and compare the effectiveness of our systems, highlighting the strengths and potential areas of enhancement in our advanced approaches.
+
+The codebase for our project can be found on GitHub\footnote{URL: \url{https://github.com/CodingTil/2023_24---IRTM---Group-Project}}.
 
 \section{Problem Statement}\label{sec:problem}
-The goal of this project is to design a conversational search engine (CSE). The main differeation of such a system to a ordinary search engine is that queries asked by the same user within a session are not independent of each other in a CSE. A CSE takes currently and past discussed topics into account for searching relevant passages. The system should be able to respond to queries which continue the flow of the conversation, as well as handle abrupt changes in the conversation topic. For each query, the system should then return a ranked list of the top 1000 most relevant passages from a collection of 8.8 million documents.
+This project focuses on developing a Conversational Search Engine (CSE). What distinguishes a CSE from a traditional search engine is its inherent context-aware nature. In a CSE, queries asked by a user within a session are semantically interconnected. Rather than treating each query in isolation, a CSE leverages information from both the previous queries and the system's responses to those queries to retrieve relevant passages. It must cater to the continuous thread of a dialogue, while also being agile enough to accommodate sudden shifts in conversation topics. For every user query, the goal is to generate a ranked listing of the top 1000 passages out of an expansive 8.8 million document collection.
 
-In addition to the components of a ordinary search engine retrieval pipeline, a CSE retrieval pipeline should also include a query rewriting component that rewrites the current query to reflect the current conversation topic. A overview of how the different components of a CSE retrieval pipeline interact with each other is shown in figure \ref{figure:global_pipeline}. As it is common practice in ordinary search engines, also in CSE the document collection must be indexed beforehand to facilitate efficient document retrieval and ranking.
+A vital component that sets a CSE apart is its query rewriting mechanism. This feature reformulates the presented query to better reflect the ongoing conversation topic. Figure \ref{figure:global_pipeline} offers a schematic representation of how the various stages of a CSE retrieval pipeline interact. Analogous to traditional search engines, a CSE also requires prior indexing of the document collection, enabling computationally efficient retrieval and ranking processes.
 
 \begin{figure}[h]
 	\includegraphics[width=7cm]{pipeline.png}
-	\caption{Global Pipeline architecture of the system}
+	\caption{Overall system's pipeline architecture}
 	\label{figure:global_pipeline}
 \end{figure}
 
 
 \section{Baseline Method}\label{sec:baseline}
-Explain what you are taking as your baseline method, as well as why this is a reasonable baseline, and why you are making specific implementation choices.
-
-Our baseline method is inspired by the baseline method presented by Łajewska et al. \cite{Lajewska:2023:ECIR}. Our baseline method consists of the following stages:
+Our baseline method is inspired by the baseline method presented by Łajewska et al. \cite{Lajewska:2023:ECIR}. Our baseline method is structured in the following sequence:
 \begin{enumerate}
 	\item	\texttt{T5} Query Rewriting
 	\item	\texttt{BM25} Retrieval
 	\item	Re-ranking
 			\begin{enumerate}
-				\item	Re-ranking with \texttt{monoT5}
-				\item	Re-ranking top documents with \texttt{duoT5}
+				\item	Re-ranking using \texttt{monoT5}
+				\item	Top-document re-ranking using \texttt{duoT5}
 			\end{enumerate}
 \end{enumerate}
 
 \subsection{T5 Query Rewriting}
-In conversation search engines, query rewriting is the crucial component to include the semantics of the conversation history into the currently asked query, which results into a singular rewritten query that can be passed along into the retrieval pipeline.
+In conversation search engines, query rewriting is the crucial component to include the semantics of the conversation history into the currently asked query, which results into a singular rewritten query that can be fed into the retrieval pipeline.
 
 For this purpose, we include all the previously rewritten queries $q'_0 \dots q'_{n-1}$ of our conversation, as well as the response $r_{n-1}$ of the CSE to the previous rewritten query $q'_{n-1}$ into the current query $q_n$. This is done by concatenating the previous rewritten queries and the response into a single string:
 \begin{align*}
@@ -89,24 +90,24 @@ For this purpose, we include all the previously rewritten queries $q'_0 \dots q'
 \end{align*}
 This approach resembles the approach taken by Łajewska et al. \cite{Lajewska:2023:ECIR}.
 
-We have found through experimentation that this concatenation is insufficient to produce satisfiable results: The concatenated string is too long, and too much focus during the later retrieval is being put on $r_{n-1}$, which make sudden changes in topic impossible.
+We have found through experimentation that this mere concatenation is insufficient to produce satisfiable results: The concatenated string is too long, and too much focus during the later retrieval is being put on $r_{n-1}$, which make responses sudden topic changes impossible.
 
-For those reasons, we have turned our attention to other query rewriting methods, which we could append to the currently followed approach. \texttt{Pyterrier} provides the \texttt{SequentialDependence} query rewriting method\footnote{URL: \url{https://pyterrier.readthedocs.io/en/latest/rewrite.html\#sequentialdependence}}. We have found, however, that this rewriter does not produce the desired result.
+Driven by these insights, we have turned our attention to other query rewriting techniques. \texttt{Pyterrier} provides the \texttt{SequentialDependence} query rewriting method\footnote{URL: \url{https://pyterrier.readthedocs.io/en/latest/rewrite.html\#sequentialdependence}}. We have found, however, that this rewriter also does not produce the desired results.
 
-Researching further, we stumbled upon the \texttt{T5} neural query rewriter trained on conversational question rewriting\footnote{URL: \url{https://huggingface.co/castorini/t5-base-canard}}. This method produced the desired results: The rewritten query $q'_n$ resembles the original query $q_n$, just rewritten very slightly to include the conversation topic, if no sudden change was detected. As a side effect, the rewritten query is now also very small in size, and not growing with the number of queries asked in the conversation, as we saw in the previous approach.
+Subsequent exploration led us to the \texttt{T5} neural query rewriter trained for conversational question rewriting\footnote{URL: \url{https://huggingface.co/castorini/t5-base-canard}}. With this method, $q'_n$ closely mirrored $q_n$, subtly infusing it with the conversation's context, particularly when no drastic topic alterations were identified. A valuable by-product was the concise nature of the rewritten query, a departure from the growing length observed previously.
 
 \subsection{BM25 Retrieval}
-The \texttt{BM25} retrieval method is a common retrieval method in information retrieval. We chose to use this retrieval method, as the reference system also uses this basic retrieval method. This allows us to easily compare our baseline system to the reference system.
+We settled on the \texttt{BM25} retrieval method, a commonly used formula in the realm of information retrieval, for its simplicity and its deployment in the reference system, allowing for direct comparisons.
 
 \subsection{Re-ranking}
-The re-ranking stage of our baseline system consists of two stages: First, the top 1000 documents retrieved by the \texttt{BM25} retrieval method are re-ranked using the \texttt{monoT5} reranker. Afterwards, the top 50 documents of the previous re-ranking stage are re-ranked using the \texttt{duoT5} reranker. The actual number of documents to be reranked in each stage is a hyperparameter of our system, and can be adjusted to trade off runtime and quality of the result. The rerankers were implemented in the \texttt{pyterrier\_t5} library.\footnote{URL: \url{https://github.com/terrierteam/pyterrier_t5}}
+The re-ranking stage of our baseline system consists of two stages: First, the top 1000 documents retrieved by the \texttt{BM25} retrieval method are re-ranked using the \texttt{monoT5} reranker. Afterwards, the top 50 documents of the previous re-ranking stage are rearranged using the \texttt{duoT5} reranker. e precise count of documents subject to reranking at each stage is a hyperparameter of our system, allowing to balance computational cost and result quality. These rerankers were implemented in the \texttt{pyterrier\_t5} library.\footnote{URL: \url{https://github.com/terrierteam/pyterrier_t5}}
 
 
 \section{Advanced Method}\label{sec:advanced}
 Explain what you are taking as your advanced method(s), as well as why this is a promising attempt to outperform the baseline method, and why you are making specific implementation choices.
 
 \section{Results}\label{sec:results}
-The individual methods were evaluated on the MS MARCO document collection and the following provided files: \texttt{queries\_train.csv} holds a list of queries grouped together into several conversation sessions, and \texttt{qrels\_train.txt} contains the relevance assessments for the training queries. Each method was then evaluated on the following metrics:
+The individual methods were evaluated on the MS MARCO document collection and the following provided files: \texttt{queries\_train.csv}, comprising of a list of queries grouped together into several conversation sessions, and \texttt{qrels\_train.txt} that contains the relevance assessments for the training queries. Our evaluation focused on a suite of metrics:
 \begin{itemize}
 	\item	Recall at 1000 (R@1000)
 	\item	Mean Average Precision (MAP)
@@ -120,7 +121,7 @@ trec_eval -c -m recall.1000 -m map -m recip_rank
 {GENERATED_TREC_RUNFILE}
 \end{verbatim}
 
-The baseline method can be parameterized in a few different ways. For the evaluation, the following parameterization was used: The document retrieval (\texttt{BM25}) used the default \texttt{pyterrier} parameters\footnote{URL: \url{https://pyterrier.readthedocs.io/en/latest/terrier-retrieval.html}} to retrieve the 1000 most-relevant documents for each query. All 1000 documents were then reranked using the \texttt{monoT5} reranker. Because of the high computational cost of the \texttt{duoT5} reranker, only of those 1000 documents the best 50 documents were then reordered using this reranker.
+As stated in section \ref{sec:baseline}, the baseline method can be parameterized in a few different ways. For this evaluation, we utilized the following configurations: The document retrieval (\texttt{BM25}) used the default parameters from \texttt{pyterrier}\footnote{URL: \url{https://pyterrier.readthedocs.io/en/latest/terrier-retrieval.html}} to retrieve the 1000 most-relevant documents for each query. All 1000 documents were then reranked using the \texttt{monoT5} reranker. Because of the high computational cost of the \texttt{duoT5} reranker, only of those 1000 documents the best 50 documents were then reordered using this reranker.
 
 \begin{table}[h]
 \begin{center}
