@@ -6,6 +6,7 @@ import pyterrier as pt
 import interface.cli as cli_module
 import interface.run_queries as run_queries_module
 import interface.eval as eval_module
+import interface.kaggle as kaggle_module
 
 import models.base as base_module
 import models.baseline as baseline_module
@@ -60,7 +61,7 @@ def main():
     parser.add_argument(
         "command",
         type=str,
-        choices=["cli", "run_file", "eval"],
+        choices=["cli", "run_file", "eval", "kaggle"],
         help='Command to run (e.g., "cli" for command line interface)',
     )
 
@@ -125,6 +126,13 @@ def main():
             recreate=args.recreate,
             queries_file_path=args.queries,
             qrels_file_path=args.qrels,
+            baseline_params=args.baseline_params,
+        )
+    elif args.command == "kaggle":
+        kaggle_module.main(
+            recreate=args.recreate,
+            queries_file_path=args.queries,
+            output_file_path=args.output,
             baseline_params=args.baseline_params,
         )
 

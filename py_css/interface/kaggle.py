@@ -1,0 +1,92 @@
+import logging
+from typing import Dict, Tuple, List
+import csv
+import os
+
+import pandas as pd
+
+import indexer.index as index_module
+import models.base as base_model
+import models.baseline as baseline_module
+
+index = None
+pipeline: base_model.Pipeline
+
+
+def to_kaggle_format(df: pd.DataFrame) -> str:
+    """
+    Convert a dataframe to the Kaggle submission format.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        The dataframe to convert.
+
+    Returns
+    -------
+    str
+        The dataframe in the Kaggle submission format.
+    """
+    # for each query, only keep the best 3 docnos
+    df = df.groupby("qid").head(3)
+
+    output = "qid,docid\n"
+    for _, row in df.iterrows():
+        output += f"{row['qid']},{row['docno']}\n"
+    return output
+
+
+def main(
+    *,
+    recreate: bool,
+    queries_file_path: str,
+    output_file_path: str,
+    baseline_params: Tuple[int, int, int],
+) -> None:
+    """
+    The main function of the eval interface.
+
+    Parameters
+    ----------
+    recreate : bool
+        Whether to recreate the index.
+    queries_file_path : str
+        The path to the queries file.
+    qrels_file_path : str
+        The path to the qrels file.
+    baseline_params : Tuple[int, int, int]
+        The parameters for the baseline model.
+    """
+    global index
+    global pipeline
+
+    index = index_module.get_index(recreate=recreate)
+    pipeline = baseline_module.Baseline(
+        index, baseline_params[0], baseline_params[1], baseline_params[2]
+    )
+
+    logging.info("Loading queries...")
+    queries: Dict[int, Dict[int, base_model.Query]] = {}  # topic_id -> (turn_id, query)
+    with open(queries_file_path, "r") as queries_file:
+        # Skip the header
+        queries_file.readline()
+        csv_reader = csv.reader(queries_file)
+        for line in csv_reader:
+            query_id, query, topic_id, turn_id = tuple(line[0:4])
+            queries.setdefault(int(topic_id), {})[int(turn_id)] = base_model.Query(
+                query_id=query_id, query=query
+            )
+    inputs: List[Tuple[List[base_model.Query], base_model.Context]] = []
+    for topic_id, qs in queries.items():
+        inputs.append(
+            ([query for _, query in sorted(qs.items(), key=lambda x: x[0])], [])
+        )
+
+    logging.info("Running queries...")
+    _, results = pipeline.batch_search_conversation(inputs)
+
+    logging.info("Writing results...")
+    # create file and parent directories if not exist
+    os.makedirs(os.path.dirname(output_file_path), exist_ok=True)
+    with open(output_file_path, "w") as output_file:
+        output_file.write(to_kaggle_format(results))
