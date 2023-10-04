@@ -11,8 +11,8 @@
 
 \begin{document}
 
-\title{Information retrieval and Text Mining : Group Project \\
-\large Group \#5}
+\title{Evaluation of Conversational Search Engines}
+\subtitle{Group ID: \#5}
 
 % AUTHORS:
 \author{Til Mohr}
@@ -68,6 +68,10 @@ A vital component that sets a CSE apart is its query rewriting mechanism. This f
 	\caption{Overall system's pipeline architecture}
 	\label{figure:global_pipeline}
 \end{figure}
+
+
+\section{Related Work}\label{sec:related}
+Identify and discuss related work (5-10 relevant papers).
 
 
 \section{Baseline Method}\label{sec:baseline}
@@ -130,12 +134,14 @@ As stated in section \ref{sec:baseline}, the baseline method can be parameterize
 	\begin{tabular}{l|rrrr}
 			& R@1000 & MAP & MRR & NDCG\_Cut@3 \\
 		\hline
-		Reference System & ??? & ??? & ??? & ??? \\
+		Reference System & ??? & 0.07 & ??? & 0.09 \\
 		Baseline Method & $0.1746$ & $0.3230$ & $0.5705$ & $0.2461$ \\
 	\end{tabular}
 	\label{table:1}
 \end{center}
 \end{table}
+
+As can be seen in table \ref{table:1}, our baseline method is at least as efficient as the reference system provided by the project owners. Thus, our baseline method fulfills the hard requirement of the project.
 
 \section{Discussion and Conclusions}
 
