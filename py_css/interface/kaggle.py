@@ -27,8 +27,8 @@ def to_kaggle_format(df: pd.DataFrame) -> str:
     str
         The dataframe in the Kaggle submission format.
     """
-    # for each query, only keep the best 3 docnos
-    df = df.groupby("qid").head(3)
+    # for each query, only keep the best 3 docnos ranked by asceding rank
+    df = df.groupby("qid").sort_values("rank").head(3)
 
     output = "qid,docid\n"
     for _, row in df.iterrows():
