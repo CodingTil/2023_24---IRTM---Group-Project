@@ -1,5 +1,4 @@
 import logging
-from typing import Tuple
 
 from rich.prompt import Prompt
 from rich.style import Style
@@ -7,7 +6,7 @@ from rich.console import Console
 
 import indexer.index as index_module
 import models.base as base_module
-import models.baseline as baseline_module
+import models.model_parameters as model_parameters_module
 
 index = None
 pipeline: base_module.Pipeline
@@ -63,7 +62,12 @@ def process_input(input_str: str, *, top_n: int) -> str:
     return "\n".join(contents)
 
 
-def main(*, recreate: bool, top_n: int, baseline_params: Tuple[int, int, int]) -> None:
+def main(
+    *,
+    recreate: bool,
+    top_n: int,
+    model_parameters: model_parameters_module.ParametersBase,
+) -> None:
     """
     The main function of the CLI interface.
 
@@ -73,16 +77,14 @@ def main(*, recreate: bool, top_n: int, baseline_params: Tuple[int, int, int]) -
         Whether to recreate the index.
     top_n : int
         The number of top-ranked documents to return.
-    baseline_params : Tuple[int, int, int]
-        The parameters for the baseline model.
+    model_parameters : model_parameters_module.ParametersBase
+        The model parameters to use.
     """
     global index
     global pipeline
 
     index = index_module.get_index(recreate=recreate)
-    pipeline = baseline_module.Baseline(
-        index, baseline_params[0], baseline_params[1], baseline_params[2]
-    )
+    pipeline = model_parameters.create_Pipeline(index=index)
 
     # Initialize the rich console
     console = Console()

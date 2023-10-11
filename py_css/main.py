@@ -8,8 +8,7 @@ import interface.run_queries as run_queries_module
 import interface.eval as eval_module
 import interface.kaggle as kaggle_module
 
-import models.base as base_module
-import models.baseline as baseline_module
+import models.model_parameters as model_parameters_module
 
 
 def setup() -> None:
@@ -45,7 +44,7 @@ def main():
     global_args.add_argument(
         "--method",
         type=str,
-        choices=["baseline", "advanced"],
+        choices=["baseline"],
         default="baseline",
         help="Set the retrieval method",
     )
@@ -104,6 +103,15 @@ def main():
     # Log Level
     logging.basicConfig(level=args.log)
 
+    model_parameters: model_parameters_module.ParametersBase
+    match args.method:
+        case "baseline":
+            model_parameters = model_parameters_module.BaselineParameters.from_tuple(
+                args.baseline_params
+            )
+        case _:
+            raise NotImplementedError
+
     # Call the setup function
     setup()
 
@@ -112,28 +120,28 @@ def main():
         cli_module.main(
             recreate=args.recreate,
             top_n=args.top_n,
-            baseline_params=args.baseline_params,
+            model_parameters=model_parameters,
         )
     elif args.command == "run_file":
         run_queries_module.main(
             recreate=args.recreate,
             queries_file_path=args.queries,
             output_file_path=args.output,
-            baseline_params=args.baseline_params,
+            model_parameters=model_parameters,
         )
     elif args.command == "eval":
         eval_module.main(
             recreate=args.recreate,
             queries_file_path=args.queries,
             qrels_file_path=args.qrels,
-            baseline_params=args.baseline_params,
+            model_parameters=model_parameters,
         )
     elif args.command == "kaggle":
         kaggle_module.main(
             recreate=args.recreate,
             queries_file_path=args.queries,
             output_file_path=args.output,
-            baseline_params=args.baseline_params,
+            model_parameters=model_parameters,
         )
 
 

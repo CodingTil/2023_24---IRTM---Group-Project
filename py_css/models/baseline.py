@@ -23,9 +23,10 @@ class Baseline(base_module.Pipeline):
     def __init__(
         self,
         index,
-        bm25_docs: int = 1000,
-        mono_t5_docs: int = 100,
-        duo_t5_docs: int = 10,
+        *,
+        bm25_docs,
+        mono_t5_docs,
+        duo_t5_docs,
     ):
         """
         Constructs all the necessary attributes for the baseline retrieval method.

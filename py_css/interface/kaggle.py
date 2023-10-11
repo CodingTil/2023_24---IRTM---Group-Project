@@ -7,7 +7,7 @@ import pandas as pd
 
 import indexer.index as index_module
 import models.base as base_model
-import models.baseline as baseline_module
+import models.model_parameters as model_parameters_module
 
 index = None
 pipeline: base_model.Pipeline
@@ -41,7 +41,7 @@ def main(
     recreate: bool,
     queries_file_path: str,
     output_file_path: str,
-    baseline_params: Tuple[int, int, int],
+    model_parameters: model_parameters_module.ParametersBase,
 ) -> None:
     """
     The main function of the eval interface.
@@ -54,16 +54,14 @@ def main(
         The path to the queries file.
     qrels_file_path : str
         The path to the qrels file.
-    baseline_params : Tuple[int, int, int]
-        The parameters for the baseline model.
+    model_parameters : model_parameters_module.ParametersBase
+        The model parameters.
     """
     global index
     global pipeline
 
     index = index_module.get_index(recreate=recreate)
-    pipeline = baseline_module.Baseline(
-        index, baseline_params[0], baseline_params[1], baseline_params[2]
-    )
+    pipeline = model_parameters.create_Pipeline(index=index)
 
     logging.info("Loading queries...")
     queries: Dict[int, Dict[int, base_model.Query]] = {}  # topic_id -> (turn_id, query)
