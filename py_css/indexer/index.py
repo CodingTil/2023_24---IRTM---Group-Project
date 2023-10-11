@@ -77,9 +77,12 @@ def document_collection_dataframe() -> pd.DataFrame:
     pd.DataFrame
         A dataframe of the document collection.
     """
-    return pd.read_table(
+    df = pd.read_table(
         DATA_PATH, names=["docno", "text"], header=0, dtype={"docno": str, "text": str}
     )
+    # Remove the rows where text is empty
+    df = df[df["text"].str.strip().astype(bool)]
+    return df
 
 
 def add_query_description_to_documents(df: pd.DataFrame) -> pd.DataFrame:
