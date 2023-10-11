@@ -13,6 +13,7 @@ requires = [
     "rich",
     "python-terrier",
     "pyterrier-t5@git+https://github.com/terrierteam/pyterrier_t5.git",
+    "pyterrier_doc2query@git+https://github.com/terrierteam/pyterrier_doc2query.git",
     "torch",
     "transformers[torch]"
 ]
