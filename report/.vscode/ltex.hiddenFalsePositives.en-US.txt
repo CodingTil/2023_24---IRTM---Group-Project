@@ -1,0 +1,2 @@
+{"rule":"ADMIT_ENJOY_VB","sentence":"^\\QNLP aspires to equip computers with the capability to grasp the depth of human language and harness this understanding to execute a range of tasks, from text summarization and machine translation to the complexities of question answering.\\E$"}
+{"rule":"ADMIT_ENJOY_VB","sentence":"^\\QNLP aspires to equip computers with the capability to grasp the depth of human language and harness this understanding to execute a range of tasks, such as text summarization, machine translation, and question answering.\\E$"}

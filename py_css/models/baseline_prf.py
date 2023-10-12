@@ -63,16 +63,51 @@ class BaselinePRF(base_module.Pipeline):
         history = []
         for q, _ in context:
             history.append(q.query)
+        doc_was_added = False
         if len(context) > 0:
             last_docs = context[-1][1]
-            if last_docs is not None:
+            if last_docs is not None and len(last_docs) > 0:
                 history.append(last_docs[0].content)
+                doc_was_added = True
+        sum_of_lengths = sum([len(q) for q in history]) + len(query.query)
+        if sum_of_lengths > 512:
+            if doc_was_added:
+                if sum_of_lengths - 512 < len(history[-1]):
+                    history[-1] = history[-1][: sum_of_lengths - 512]
+                elif sum_of_lengths - 512 == len(query.query):
+                    history = history[:-1]
+                else:
+                    history = history[:-1]
+                    remaining = sum([len(q) for q in history]) + len(query.query) - 512
+                    while remaining > 0 and 0 < len(history):
+                        if len(history[0]) < remaining:
+                            remaining -= len(history[0])
+                            history = history[0:]
+                        else:
+                            history[0] = history[0][remaining:]
+                            remaining = 0
+            else:
+                remaining = sum([len(q) for q in history]) + len(query.query) - 512
+                while remaining > 0 and 0 < len(history):
+                    if len(history[0]) < remaining:
+                        remaining -= len(history[0])
+                        history = history[0:]
+                    else:
+                        history[0] = history[0][remaining:]
+                        remaining = 0
+
         history.append(query.query)
         new_query = " <sep> ".join(history)
         return new_query
 
     def transform(self, query_df: pd.DataFrame) -> pd.DataFrame:
+        unique_qids = set(query_df["qid"].unique())
+
         rewritten_queries_df = self.t5_qr.transform(query_df)
+
+        assert unique_qids == set(
+            rewritten_queries_df["qid"].unique()
+        ), f"{unique_qids} != {set(rewritten_queries_df['qid'].unique())}"
 
         top_docs_df = self.top_docs[0].transform(rewritten_queries_df.copy())
         top_docs_df = (
@@ -80,6 +115,10 @@ class BaselinePRF(base_module.Pipeline):
             .groupby("qid")
             .head(self.top_docs[1])
         )
+
+        assert unique_qids == set(
+            top_docs_df["qid"].unique()
+        ), f"{unique_qids} != {set(top_docs_df['qid'].unique())}"
 
         # Now add in the rewritten queries to the top docs
         top_docs_df = pt.model.push_queries(top_docs_df, inplace=True)
@@ -91,6 +130,10 @@ class BaselinePRF(base_module.Pipeline):
         )
         top_docs_df["query"] = top_docs_df["rewritten_query"]
 
+        assert unique_qids == set(
+            top_docs_df["qid"].unique()
+        ), f"{unique_qids} != {set(top_docs_df['qid'].unique())}"
+
         mono_t5_df = self.mono_t5[0].transform(
             top_docs_df.groupby("qid").head(self.mono_t5[1])
         )
@@ -99,6 +142,10 @@ class BaselinePRF(base_module.Pipeline):
             .groupby("qid")
             .head(self.mono_t5[1])
         )
+
+        assert unique_qids == set(
+            mono_t5_df["qid"].unique()
+        ), f"{unique_qids} != {set(mono_t5_df['qid'].unique())}"
 
         duo_t5_df = self.duo_t5[0].transform(
             mono_t5_df.groupby("qid").head(self.duo_t5[1])
@@ -109,4 +156,14 @@ class BaselinePRF(base_module.Pipeline):
             .head(self.duo_t5[1])
         )
 
-        return self.combine_result_stages([top_docs_df, mono_t5_df, duo_t5_df])
+        assert unique_qids == set(
+            duo_t5_df["qid"].unique()
+        ), f"{unique_qids} != {set(duo_t5_df['qid'].unique())}"
+
+        result = self.combine_result_stages([top_docs_df, mono_t5_df, duo_t5_df])
+
+        assert unique_qids == set(
+            result["qid"].unique()
+        ), f"{unique_qids} != {set(result['qid'].unique())}"
+
+        return result

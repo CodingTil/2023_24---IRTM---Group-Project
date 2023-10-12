@@ -55,10 +55,39 @@ class Baseline(base_module.Pipeline):
         history = []
         for q, _ in context:
             history.append(q.query)
+        doc_was_added = False
         if len(context) > 0:
             last_docs = context[-1][1]
-            if last_docs is not None:
+            if last_docs is not None and len(last_docs) > 0:
                 history.append(last_docs[0].content)
+                doc_was_added = True
+        sum_of_lengths = sum([len(q) for q in history]) + len(query.query)
+        if sum_of_lengths > 512:
+            if doc_was_added:
+                if sum_of_lengths - 512 < len(history[-1]):
+                    history[-1] = history[-1][: sum_of_lengths - 512]
+                elif sum_of_lengths - 512 == len(query.query):
+                    history = history[:-1]
+                else:
+                    history = history[:-1]
+                    remaining = sum([len(q) for q in history]) + len(query.query) - 512
+                    while remaining > 0 and 0 < len(history):
+                        if len(history[0]) < remaining:
+                            remaining -= len(history[0])
+                            history = history[0:]
+                        else:
+                            history[0] = history[0][remaining:]
+                            remaining = 0
+            else:
+                remaining = sum([len(q) for q in history]) + len(query.query) - 512
+                while remaining > 0 and 0 < len(history):
+                    if len(history[0]) < remaining:
+                        remaining -= len(history[0])
+                        history = history[0:]
+                    else:
+                        history[0] = history[0][remaining:]
+                        remaining = 0
+
         history.append(query.query)
         new_query = " <sep> ".join(history)
         return new_query
