@@ -192,15 +192,21 @@ class Pipeline(ABC):
         if t5_rewriter_module.COPY_REWRITTEN_QUERY_COLUMN in result.columns:
             temp_result = result[result["qid"] == query.query_id]
             if not temp_result.empty:
-                query.query = temp_result.at[temp_result.index[0], t5_rewriter_module.COPY_REWRITTEN_QUERY_COLUMN]
+                query.query = temp_result[
+                    t5_rewriter_module.COPY_REWRITTEN_QUERY_COLUMN
+                ].iloc[0]
             else:
-                warnings.warn(f"Query {query.query_id} not found in result. This should not happen. All query-ids: {result['qid'].unique()}")
+                warnings.warn(
+                    f"Query {query.query_id} not found in result. This should not happen. All query-ids: {result['qid'].unique()}"
+                )
         else:
             temp_result = result[result["qid"] == query.query_id]
             if not temp_result.empty:
-                query.query = temp_result.at[temp_result.index[0], "query"]
+                query.query = temp_result["query"].iloc[0]
             else:
-                warnings.warn(f"Query {query.query_id} not found in result. This should not happen. All query-ids: {result['qid'].unique()}")
+                warnings.warn(
+                    f"Query {query.query_id} not found in result. This should not happen. All query-ids: {result['qid'].unique()}"
+                )
 
         doc_list: List[Document] = []
         for _, entry in result.iterrows():
@@ -238,16 +244,22 @@ class Pipeline(ABC):
             for query, _ in inputs:
                 temp_result = result[result["qid"] == query.query_id]
                 if not temp_result.empty:
-                    query.query = temp_result.at[temp_result.index[0], t5_rewriter_module.COPY_REWRITTEN_QUERY_COLUMN]
+                    query.query = temp_result[
+                        t5_rewriter_module.COPY_REWRITTEN_QUERY_COLUMN
+                    ].iloc[0]
                 else:
-                    warnings.warn(f"Query {query.query_id} not found in result. This should not happen. All query-ids: {result['qid'].unique()}")
+                    warnings.warn(
+                        f"Query {query.query_id} not found in result. This should not happen. All query-ids: {result['qid'].unique()}"
+                    )
         else:
             for query, _ in inputs:
                 temp_result = result[result["qid"] == query.query_id]
                 if not temp_result.empty:
-                    query.query = temp_result.at[temp_result.index[0], "query"]
+                    query.query = temp_result["query"].iloc[0]
                 else:
-                    warnings.warn(f"Query {query.query_id} not found in result. This should not happen. All query-ids: {result['qid'].unique()}")
+                    warnings.warn(
+                        f"Query {query.query_id} not found in result. This should not happen. All query-ids: {result['qid'].unique()}"
+                    )
 
         contexts: List[Context] = []
         for query, context in inputs:

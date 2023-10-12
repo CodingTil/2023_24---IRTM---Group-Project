@@ -7,6 +7,10 @@ import pandas as pd
 import pyterrier as pt
 from pyterrier_t5 import MonoT5ReRanker, DuoT5ReRanker
 
+import torch
+
+BATCH_SIZE = 128 if torch.cuda.is_available() else 8
+
 
 class Baseline(base_module.Pipeline):
     """
@@ -42,8 +46,8 @@ class Baseline(base_module.Pipeline):
         t5_qr = t5_rewriter.T5Rewriter()
         bm25 = pt.BatchRetrieve(index, wmodel="BM25", metadata=["docno", "text"])
         self.top_docs = (t5_qr >> bm25, bm25_docs)
-        self.mono_t5 = (MonoT5ReRanker(), mono_t5_docs)
-        self.duo_t5 = (DuoT5ReRanker(), duo_t5_docs)
+        self.mono_t5 = (MonoT5ReRanker(batch_size=BATCH_SIZE), mono_t5_docs)
+        self.duo_t5 = (DuoT5ReRanker(batch_size=BATCH_SIZE), duo_t5_docs)
 
     def transform_input(
         self, query: base_module.Query, context: base_module.Context

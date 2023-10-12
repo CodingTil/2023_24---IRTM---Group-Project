@@ -7,6 +7,10 @@ import pandas as pd
 import pyterrier as pt
 from pyterrier_t5 import MonoT5ReRanker, DuoT5ReRanker
 
+import torch
+
+BATCH_SIZE = 128 if torch.cuda.is_available() else 8
+
 
 class BaselinePRF(base_module.Pipeline):
     """
@@ -50,8 +54,8 @@ class BaselinePRF(base_module.Pipeline):
         bm25 = pt.BatchRetrieve(index, wmodel="BM25", metadata=["docno", "text"])
         rm3 = pt.rewrite.RM3(index, fb_docs=rm3_fb_docs, fb_terms=rm3_fb_terms)
         self.top_docs = ((bm25 % rm3_fb_docs) >> rm3 >> bm25, bm25_docs)
-        self.mono_t5 = (MonoT5ReRanker(), mono_t5_docs)
-        self.duo_t5 = (DuoT5ReRanker(), duo_t5_docs)
+        self.mono_t5 = (MonoT5ReRanker(batch_size=BATCH_SIZE), mono_t5_docs)
+        self.duo_t5 = (DuoT5ReRanker(batch_size=BATCH_SIZE), duo_t5_docs)
 
     def transform_input(
         self, query: base_module.Query, context: base_module.Context
@@ -78,9 +82,14 @@ class BaselinePRF(base_module.Pipeline):
         )
 
         # Now add in the rewritten queries to the top docs
-        top_docs_df = top_docs_df.merge(rewritten_queries_df, on="qid", how="left")
-        # And overwrite the "query" column again
-        top_docs_df["query"] = top_docs_df[t5_rewriter.COPY_REWRITTEN_QUERY_COLUMN]
+        top_docs_df = pt.model.push_queries(top_docs_df, inplace=True)
+        top_docs_df = pd.merge(
+            top_docs_df,
+            rewritten_queries_df[["qid", "rewritten_query"]],
+            on="qid",
+            how="left",
+        )
+        top_docs_df["query"] = top_docs_df["rewritten_query"]
 
         mono_t5_df = self.mono_t5[0].transform(
             top_docs_df.groupby("qid").head(self.mono_t5[1])
