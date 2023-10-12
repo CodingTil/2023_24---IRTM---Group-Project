@@ -4,9 +4,7 @@ import shutil
 import logging
 from typing import Dict, Generator
 
-import pandas as pd
 import pyterrier as pt
-from pyterrier_doc2query import Doc2Query
 
 # Paths for data and index
 DATA_PATH = resource_filename(__name__, "../../data/collection.tsv")
@@ -61,50 +59,24 @@ def create_index() -> pt.IndexRef:
 
     # Create an index with both "docno" and "text" as metadata
     logging.info("Creating Index")
-    df = document_collection_dataframe()
-    df = add_query_description_to_documents(df)
-    df_indexer = pt.DFIndexer(INDEX_PATH, verbose=True, blocks=True)
-    logging.info("Indexing")
-    return df_indexer.index(df["text"], df)
-
-
-def document_collection_dataframe() -> pd.DataFrame:
-    """
-    Return a dataframe of the document collection.
-
-    Returns
-    -------
-    pd.DataFrame
-        A dataframe of the document collection.
-    """
-    df = pd.read_table(
-        DATA_PATH, names=["docno", "text"], header=0, dtype={"docno": str, "text": str}
+    iter_indexer = pt.IterDictIndexer(INDEX_PATH, verbose=True, blocks=True)
+    return iter_indexer.index(
+        document_collection_generator(), meta={"docno": 20, "text": 4096}
     )
-    # Remove the rows where text is empty
-    df = df[df["text"].str.strip().astype(bool)]
-    return df
 
 
-def add_query_description_to_documents(df: pd.DataFrame) -> pd.DataFrame:
+def document_collection_generator() -> Generator[Dict[str, str], None, None]:
     """
-    Add a query description to each document.
+    Return a generator over the document collection.
 
-    Parameters
-    ----------
-    pd.DataFrame
-        A dataframe of the document collection.
-
-    Returns
+    Yields
     -------
-    pd.DataFrame
-        A dataframe of the document collection with a query description.
+    Generator[Dict[str, str], None, None]
+        A generator over the document collection (docno, content).
     """
-    doc_2_query_t5 = Doc2Query(
-        append=False,
-        out_attr="querygen",
-        fast_tokenizer=True,
-        verbose=True,
-        num_samples=1,
-    )
-    logging.info("Adding query description to documents")
-    return doc_2_query_t5.transform(df)
+    with open(DATA_PATH, "r") as f:
+        for line in f:
+            docno, content = line.split("\t")
+            if content.strip() == "":
+                continue
+            yield {"docno": docno, "text": content}
