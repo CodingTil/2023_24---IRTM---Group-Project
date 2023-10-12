@@ -3,8 +3,9 @@ from dataclasses import dataclass
 import logging
 from typing import Optional, List, Tuple, TypeAlias
 
+import models.T5Rewriter as t5_rewriter_module
+
 import pandas as pd
-import pyterrier as pt
 
 
 @dataclass
@@ -187,7 +188,12 @@ class Pipeline(ABC):
         query_df = pd.DataFrame([{"qid": query.query_id, "query": query_str}])
         result = self.transform(query_df)
 
-        query.query = result["query"].iloc[0]
+        if t5_rewriter_module.COPY_REWRITTEN_QUERY_COLUMN in result.columns:
+            query.query = result[t5_rewriter_module.COPY_REWRITTEN_QUERY_COLUMN].iloc[0]
+            print("QUERY COMES FROM REWRITER")
+        else:
+            query.query = result["query"].iloc[0]
+            print("QUERY COMES FROM ORIGINAL?!?!?!?!")
 
         doc_list: List[Document] = []
         for _, entry in result.iterrows():
@@ -221,8 +227,14 @@ class Pipeline(ABC):
         )
         result = self.transform(query_df)
 
-        for query, _ in inputs:
-            query.query = result[result["qid"] == query.query_id]["query"].iloc[0]
+        if t5_rewriter_module.COPY_REWRITTEN_QUERY_COLUMN in result.columns:
+            for query, _ in inputs:
+                query.query = result[result["qid"] == query.query_id][
+                    t5_rewriter_module.COPY_REWRITTEN_QUERY_COLUMN
+                ].iloc[0]
+        else:
+            for query, _ in inputs:
+                query.query = result[result["qid"] == query.query_id]["query"].iloc[0]
 
         contexts: List[Context] = []
         for query, context in inputs:

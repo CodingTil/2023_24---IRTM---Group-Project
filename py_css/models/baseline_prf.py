@@ -8,11 +8,12 @@ import pyterrier as pt
 from pyterrier_t5 import MonoT5ReRanker, DuoT5ReRanker
 
 
-class Baseline(base_module.Pipeline):
+class BaselinePRF(base_module.Pipeline):
     """
-    A class to represent the baseline retrieval method.
+    A class to represent the method that extends the baseline retrieval method with pseudo relevance feedback.
     """
 
+    t5_qr: t5_rewriter.T5Rewriter
     top_docs: Tuple[pt.Transformer, int]
     mono_t5: Tuple[MonoT5ReRanker, int]
     duo_t5: Tuple[DuoT5ReRanker, int]
@@ -22,6 +23,8 @@ class Baseline(base_module.Pipeline):
         index,
         *,
         bm25_docs: int,
+        rm3_fb_docs: int,
+        rm3_fb_terms: int,
         mono_t5_docs: int,
         duo_t5_docs: int,
     ):
@@ -34,14 +37,19 @@ class Baseline(base_module.Pipeline):
             The PyTerrier index.
         bm25_docs : int
             The number of documents to retrieve with BM25.
+        rm3_fb_docs : int
+            The number of documents to use for RM3.
+        rm3_fb_terms : int
+            The number of terms to use for RM3.
         mono_t5_docs : int
             The number of documents to retrieve with MonoT5.
         duo_t5_docs : int
             The number of documents to retrieve with DuoT5.
         """
-        t5_qr = t5_rewriter.T5Rewriter()
+        self.t5_qr = t5_rewriter.T5Rewriter()
         bm25 = pt.BatchRetrieve(index, wmodel="BM25", metadata=["docno", "text"])
-        self.top_docs = (t5_qr >> bm25, bm25_docs)
+        rm3 = pt.rewrite.RM3(index, fb_docs=rm3_fb_docs, fb_terms=rm3_fb_terms)
+        self.top_docs = ((bm25 % rm3_fb_docs) >> rm3 >> bm25, bm25_docs)
         self.mono_t5 = (MonoT5ReRanker(), mono_t5_docs)
         self.duo_t5 = (DuoT5ReRanker(), duo_t5_docs)
 
@@ -60,12 +68,19 @@ class Baseline(base_module.Pipeline):
         return new_query
 
     def transform(self, query_df: pd.DataFrame) -> pd.DataFrame:
-        top_docs_df = self.top_docs[0].transform(query_df)
+        rewritten_queries_df = self.t5_qr.transform(query_df)
+
+        top_docs_df = self.top_docs[0].transform(rewritten_queries_df.copy())
         top_docs_df = (
             top_docs_df.sort_values(["qid", "score"], ascending=False)
             .groupby("qid")
             .head(self.top_docs[1])
         )
+
+        # Now add in the rewritten queries to the top docs
+        top_docs_df = top_docs_df.merge(rewritten_queries_df, on="qid", how="left")
+        # And overwrite the "query" column again
+        top_docs_df["query"] = top_docs_df[t5_rewriter.COPY_REWRITTEN_QUERY_COLUMN]
 
         mono_t5_df = self.mono_t5[0].transform(
             top_docs_df.groupby("qid").head(self.mono_t5[1])

@@ -16,7 +16,7 @@ def setup() -> None:
     Set up the necessary configurations.
     """
     if not pt.started():
-        pt.init()
+        pt.init(boot_packages=["com.github.terrierteam:terrier-prf:-SNAPSHOT"])
 
 
 def main():
@@ -44,7 +44,7 @@ def main():
     global_args.add_argument(
         "--method",
         type=str,
-        choices=["baseline"],
+        choices=["baseline", "baseline-prf"],
         default="baseline",
         help="Set the retrieval method",
     )
@@ -54,6 +54,13 @@ def main():
         type=lambda s: tuple(map(int, s.split(","))),
         default=(1000, 100, 10),
         help="Parameters for baseline method as tuple (bm25_docs, mono_t5_docs, duo_t5_docs)",
+    )
+
+    global_args.add_argument(
+        "--baseline-prf-params",
+        type=lambda s: tuple(map(int, s.split(","))),
+        default=(1000, 17, 26, 100, 10),
+        help="Parameters for baseline method as tuple (bm25_docs, rm3_fb_docs, rm3_fb_terms, mono_t5_docs, duo_t5_docs)",
     )
 
     # Command argument
@@ -108,6 +115,10 @@ def main():
         case "baseline":
             model_parameters = model_parameters_module.BaselineParameters.from_tuple(
                 args.baseline_params
+            )
+        case "baseline-prf":
+            model_parameters = model_parameters_module.BaselinePRFParameters.from_tuple(
+                args.baseline_prf_params
             )
         case _:
             raise NotImplementedError

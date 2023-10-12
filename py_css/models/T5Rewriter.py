@@ -1,6 +1,6 @@
 import string
 import logging
-from typing import List, Any, Callable
+from typing import List, Any, Callable, Optional
 
 import pyterrier as pt
 import pandas as pd
@@ -11,6 +11,8 @@ MODEL_NAME: str = "castorini/t5-base-canard"
 MAX_LENGTH: int = 512
 NUM_BEAMS: int = 10
 EARLY_STOPPING: bool = True
+
+COPY_REWRITTEN_QUERY_COLUMN: str = "rewritten_query"
 
 
 class T5Rewriter(pt.Transformer):
@@ -31,7 +33,10 @@ class T5Rewriter(pt.Transformer):
     tokenizer: T5Tokenizer
     model: T5ForConditionalGeneration
 
-    def __init__(self, index):
+    def __init__(self):
+        """
+        Constructs all the necessary attributes for the T5 Query Rewriter.
+        """
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.tokenizer = T5Tokenizer.from_pretrained(MODEL_NAME)
         self.model = (
@@ -99,7 +104,7 @@ class T5Rewriter(pt.Transformer):
 
     def transform(self, topics_or_res: pd.DataFrame) -> pd.DataFrame:
         # save qid and query columns as dict (qid -> query) query is same for same qid, so sufficient to select first
-        qid_query_dict = dict(zip(topics_or_res["qid"], topics_or_res["query"]))
+        rewritten_queries_df = topics_or_res[["qid", "query"]].drop_duplicates()
 
         pipeline: List[Callable] = [
             self.__split_query_tokenize_join,
@@ -109,18 +114,21 @@ class T5Rewriter(pt.Transformer):
             self.__remove_punctuation,
         ]
 
-        rewritten_queries = {
-            qid: _call_list_of_functions(q, pipeline)
-            for qid, q in qid_query_dict.items()
-        }
-        # overwrite the query column with the decoded output token ids
-        topics_or_res["query"] = topics_or_res["qid"].map(
-            lambda qid: rewritten_queries[qid]
+        rewritten_queries_df["query"] = rewritten_queries_df["query"].apply(
+            lambda q: _call_list_of_functions(q, pipeline)
         )
 
-        logging.info(f"Rewritten queries: {topics_or_res['query'].unique()}")
+        # overwrite the query column with the decoded output token ids
+        rewritten_queries_df.merge(
+            pt.model.push_queries(topics_or_res, "query"), on="qid"
+        )
+        rewritten_queries_df[COPY_REWRITTEN_QUERY_COLUMN] = rewritten_queries_df[
+            "query"
+        ]
 
-        return topics_or_res
+        logging.info(f"Rewritten queries: {rewritten_queries_df['query'].unique()}")
+
+        return rewritten_queries_df
 
 
 def _call_list_of_functions(x: Any, pipeline: List[Callable]) -> Any:
