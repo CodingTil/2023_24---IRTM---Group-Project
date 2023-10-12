@@ -1,7 +1,7 @@
 import models.base as base_module
 import models.T5Rewriter as t5_rewriter
 
-from typing import List, Tuple
+from typing import Tuple
 
 import pandas as pd
 import pyterrier as pt
@@ -9,7 +9,7 @@ from pyterrier_t5 import MonoT5ReRanker, DuoT5ReRanker
 
 import torch
 
-BATCH_SIZE = 128 if torch.cuda.is_available() else 8
+BATCH_SIZE = 64 if torch.cuda.is_available() else 8
 
 
 class Baseline(base_module.Pipeline):
