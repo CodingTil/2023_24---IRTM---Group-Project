@@ -45,7 +45,7 @@ class Baseline(base_module.Pipeline):
         """
         t5_qr = t5_rewriter.T5Rewriter()
         bm25 = pt.BatchRetrieve(index, wmodel="BM25", metadata=["docno", "text"])
-        self.top_docs = (t5_qr >> bm25, bm25_docs)
+        self.top_docs = ((t5_qr >> bm25) % bm25_docs, bm25_docs)
         self.mono_t5 = (MonoT5ReRanker(batch_size=BATCH_SIZE), mono_t5_docs)
         self.duo_t5 = (DuoT5ReRanker(batch_size=BATCH_SIZE), duo_t5_docs)
 

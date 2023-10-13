@@ -29,6 +29,7 @@ def to_trec_runfile_format(df: pd.DataFrame, model_name: str) -> str:
     str
         The dataframe in the TREC runfile format.
     """
+    df = df.sort_values(by=["qid", "rank"], ascending=[True, True])
     return "\n".join(
         [
             f"{row['qid']} Q0 {row['docno']} {int(row['rank']) + 1} {row['score']} {model_name}"
