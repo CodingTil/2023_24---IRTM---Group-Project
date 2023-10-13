@@ -110,6 +110,11 @@ class BaselinePRF(base_module.Pipeline):
         ), f"{unique_qids} != {set(rewritten_queries_df['qid'].unique())}"
 
         top_docs_df = self.top_docs[0].transform(rewritten_queries_df.copy())
+
+        assert unique_qids == set(
+            top_docs_df["qid"].unique()
+        ), f"{unique_qids} != {set(top_docs_df['qid'].unique())}"
+
         top_docs_df = (
             top_docs_df.sort_values(["qid", "score"], ascending=False)
             .groupby("qid")
