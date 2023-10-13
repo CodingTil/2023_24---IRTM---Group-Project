@@ -73,18 +73,28 @@ A vital component that sets a CSE apart is its query rewriting mechanism. This f
 \section{Related Work}\label{sec:related}
 In this section, we delve into pertinent research encompassing the realms of conversational search engines and the broader area of information retrieval. While certain highlighted studies do not directly cater to conversational search engines or explicit information retrieval, their techniques remain invaluable in various stages of the conversational retrieval process.
 
-\subsection*{doc2query}
+\subsection*{\texttt{RM3} Pseudo-Relevance Feedback Query Expansion}
 
-\subsection*{Text-to-Text Transfer Transformer}
+\subsection*{Text-to-Text Transfer Transformer}\label{sec:t5}
 The vast domain of natural language processing (NLP) revolves around the understanding of natural language, whether presented in text or speech form. NLP aspires to equip computers with the capability to grasp the depth of human language and harness this understanding to execute a range of tasks, such as text summarization, machine translation, and question answering. Given the diverse nature of these tasks in terms of their input, output, and underlying challenges, developing a unified model proficient across the entire spectrum poses a significant challenge.
 
-Enter the Text-to-Text Transfer Transformer (T5) \cite{raffel2020exploring}. This work by Raffel et al. introduces transfer learning in NLP, aiming to craft a versatile model that can be used for any NLP problem. In essence, T5 models first learn the basics of language. Then, they're sharpened for particular tasks using targeted data. It's common to find models that have been trained in this manner for any specific NLP problem.
+Enter the Text-to-Text Transfer Transformer (\texttt{T5}) \cite{raffel2020exploring}. This work by Raffel et al. introduces transfer learning in NLP, aiming to craft a versatile model that can be used for any NLP problem. In essence, T5 models first learn the basics of language. Then, they're sharpened for particular tasks using targeted data. It's common to find models that have been trained in this manner for any specific NLP problem.
 
-\subsection*{doc2query-T5}
+\subsection*{\texttt{doc2query}}
+Traditional retrieval techniques, such as \texttt{BM25}, rely primarily on term occurrences in both queries and documents. However, they often overlook the semantics of the content. As a result, documents that may be semantically relevant to a query might be scored as non-relevant due to differences in syntax or terminology. Dense retrieval methods, which emphasize semantic similarities between texts, can address this problem but are computationally taxing during retrieval.
 
-\subsection*{monoT5 \& duoT5}
+A notable solution to this is the \texttt{doc\-2query} method proposed by Nogueira et al. \cite{nogueira2019document}. It employs a text-to-text transformer to convert documents into queries. By generating and appending a few of these transformed queries to the original document, classical retrieval methods show significantly improved performance. This is because these additional queries often capture semantic nuances similar to those in the actual query \cite{nogueira2019document,nogueira2019doc2query,pradeep2021expando}. Importantly, \texttt{doc\-2query} shifts the computational load to the indexing phase, ensuring minimal performance lag during retrieval. By leveraging the \texttt{T5} model, the authors further enhanced the query generation quality, leading to the variation known as \texttt{doc\-TTTTTquery}, \texttt{doc\--T5query}, or \texttt{doc\-2query\--T5} \cite{nogueira2019doc2query}.
 
-\subsection*{T5 Query Rewriting}
+\subsection*{\texttt{monoT5} \& \texttt{duoT5} Rerankers}
+\texttt{monoT5} and \texttt{duoT5} are neural re-rankers, also developed by Nogueira et al., which attempt to inject semantic understanding into the retrieval process \cite{nogueira2020document,nogueira2019multi}. Using the \texttt{T5} model, they re-rank a list of documents based on their semantic relevance to a given query. Specifically, \texttt{monoT5} processes a query and a single document, outputting a relevance score. In contrast, \texttt{duoT5} considers a query and two documents, determining which document is more relevant. Although \texttt{duoT5} offers a more nuanced ranking, its pairwise comparison method makes it computationally heavier. Hence, a staged re-ranking approach is proposed: first using \texttt{monoT5} for the top $k$ documents and subsequently applying \texttt{duoT5} to a smaller subset, the top $l$, where $l \ll k$ \cite{nogueira2019multi,pradeep2021expando}.
+
+\subsection*{\texttt{SPARTA} Reranker}
+
+
+\subsection*{Expando-Mono-Duo Design Pattern}
+The same research team introduced a strategic pattern for integrating the above tools into retrieval pipelines, termed the Expando-Mono-Duo design pattern \cite{pradeep2021expando}. Here's how it works: During indexing, \texttt{doc2query-T5} is employed to enhance document representation and better the initial retrieval results from methods like \texttt{BM25}. The retrieved results are then re-ranked with \texttt{monoT5}. A selected top tier from this list undergoes another re-ranking using \texttt{duoT5}. Trials show that this composite approach leads to marked improvements in result quality across multiple evaluation metrics \cite{pradeep2021expando}.
+
+\subsection*{\texttt{T5} Conversational Query Rewriting}
 
 
 
@@ -112,7 +122,7 @@ This approach resembles the approach taken by Łajewska et al. \cite{Lajewska:20
 
 We have found through experimentation that this mere concatenation is insufficient to produce satisfiable results: The concatenated string is too long, and too much focus during the later retrieval is being put on $r_{n-1}$, which make responses sudden topic changes impossible.
 
-Driven by these insights, we have turned our attention to other query rewriting techniques. \texttt{Pyterrier} provides the \texttt{SequentialDependence} query rewriting method\footnote{URL: \url{https://pyterrier.readthedocs.io/en/latest/rewrite.html\#sequentialdependence}}. We have found, however, that this rewriter also does not produce the desired results.
+Driven by these insights, we have turned our attention to other query rewriting techniques. \texttt{Pyterrier} provides the \texttt{Sequential\-Dependence} query rewriting method\footnote{URL: \url{https://pyterrier.readthedocs.io/en/latest/rewrite.html\#sequentialdependence}}. We have found, however, that this rewriter also does not produce the desired results.
 
 Subsequent exploration led us to the \texttt{T5} neural query rewriter trained for conversational question rewriting\footnote{URL: \url{https://huggingface.co/castorini/t5-base-canard}}. With this method, $q'_n$ closely mirrored $q_n$, subtly infusing it with the conversation's context, particularly when no drastic topic alterations were identified. A valuable by-product was the concise nature of the rewritten query, a departure from the growing length observed previously.
 
@@ -120,14 +130,14 @@ Subsequent exploration led us to the \texttt{T5} neural query rewriter trained f
 We settled on the \texttt{BM25} retrieval method, a commonly used formula in the realm of information retrieval, for its simplicity and its deployment in the reference system, allowing for direct comparisons.
 
 \subsection{Re-ranking}
-The re-ranking stage of our baseline system consists of two stages: First, the top 1000 documents retrieved by the \texttt{BM25} retrieval method are re-ranked using the \texttt{monoT5} reranker. Afterwards, the top 50 documents of the previous re-ranking stage are rearranged using the \texttt{duoT5} reranker. e precise count of documents subject to reranking at each stage is a hyperparameter of our system, allowing to balance computational cost and result quality. These rerankers were implemented in the \texttt{pyterrier\_t5} library.\footnote{URL: \url{https://github.com/terrierteam/pyterrier_t5}}
+The re-ranking stage of our baseline system consists of two stages: First, the top 1000 documents retrieved by the \texttt{BM25} retrieval method are re-ranked using the \texttt{monoT5} reranker. Afterwards, the top 50 documents of the previous re-ranking stage are rearranged using the \texttt{duoT5} reranker. The precise count of documents subject to reranking at each stage is a hyperparameter of our system, allowing to balance computational cost and result quality. These rerankers were implemented in the \texttt{pyterrier\_t5} library.\footnote{URL: \url{https://github.com/terrierteam/pyterrier_t5}}
 
 
 \section{Advanced Method}\label{sec:advanced}
 Explain what you are taking as your advanced method(s), as well as why this is a promising attempt to outperform the baseline method, and why you are making specific implementation choices.
 
 \section{Results}\label{sec:results}
-The individual methods were evaluated on the MS MARCO document collection and the following provided files: \texttt{queries\_train.csv}, comprising of a list of queries grouped together into several conversation sessions, and \texttt{qrels\_train.txt} that contains the relevance assessments for the training queries. Our evaluation focused on a suite of metrics:
+The individual methods were evaluated on the MS MARCO document collection and the following provided files: \texttt{queries\-\_\-train\-.csv}, comprising of a list of queries grouped together into several conversation sessions, and \texttt{qrels\-\_\-train\-.txt} that contains the relevance assessments for the training queries. Our evaluation focused on a suite of metrics:
 \begin{itemize}
 	\item	Recall at 1000 (R@1000)
 	\item	Mean Average Precision (MAP)
@@ -147,10 +157,11 @@ As stated in section \ref{sec:baseline}, the baseline method can be parameterize
 \begin{center}
 	\caption{Performance of the different methods on the MS MARCO document collection.}
 	\begin{tabular}{l|rrrr}
-			& R@1000 & MAP & MRR & NDCG\_Cut@3 \\
+			& MAP & MRR & R@1000 & NDCG\_Cut@3 \\
 		\hline
-		Reference System & ??? & 0.07 & ??? & 0.09 \\
-		Baseline Method & $0.1746$ & $0.3230$ & $0.5705$ & $0.2461$ \\
+		Reference System & 0.07 &  &  & 0.09 \\
+		Baseline & $0.1746$ & $0.3230$ & $0.5705$ & $0.2461$ \\
+		Baseline + \texttt{RM3} & $\mathbf{0.2124}$ & $\mathbf{0.3600}$ & $\mathbf{0.5710}$ & $\mathbf{0.2673}$
 	\end{tabular}
 	\label{table:1}
 \end{center}
