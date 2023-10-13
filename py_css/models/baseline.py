@@ -17,6 +17,7 @@ class Baseline(base_module.Pipeline):
     A class to represent the baseline retrieval method.
     """
 
+    t5_qr: t5_rewriter.T5Rewriter
     top_docs: Tuple[pt.Transformer, int]
     mono_t5: Tuple[MonoT5ReRanker, int]
     duo_t5: Tuple[DuoT5ReRanker, int]
@@ -43,9 +44,9 @@ class Baseline(base_module.Pipeline):
         duo_t5_docs : int
             The number of documents to retrieve with DuoT5.
         """
-        t5_qr = t5_rewriter.T5Rewriter()
+        self.t5_qr = t5_rewriter.T5Rewriter()
         bm25 = pt.BatchRetrieve(index, wmodel="BM25", metadata=["docno", "text"])
-        self.top_docs = ((t5_qr >> bm25) % bm25_docs, bm25_docs)
+        self.top_docs = ((bm25 % bm25_docs).compile(), bm25_docs)
         self.mono_t5 = (MonoT5ReRanker(batch_size=BATCH_SIZE), mono_t5_docs)
         self.duo_t5 = (DuoT5ReRanker(batch_size=BATCH_SIZE), duo_t5_docs)
 
@@ -58,7 +59,11 @@ class Baseline(base_module.Pipeline):
         doc_was_added = False
         if len(context) > 0:
             last_docs = context[-1][1]
-            if last_docs is not None and len(last_docs) > 0:
+            if (
+                last_docs is not None
+                and len(last_docs) > 0
+                and last_docs[0].docno != base_module.EMPTY_PLACEHOLDER_DOC.docno
+            ):
                 history.append(last_docs[0].content)
                 doc_was_added = True
         sum_of_lengths = sum([len(q) for q in history]) + len(query.query)
@@ -89,11 +94,15 @@ class Baseline(base_module.Pipeline):
                         remaining = 0
 
         history.append(query.query)
-        new_query = " <sep> ".join(history)
+        new_query = t5_rewriter.SEPERATOR_TOKEN.join(history)
         return new_query
 
     def transform(self, query_df: pd.DataFrame) -> pd.DataFrame:
-        top_docs_df = self.top_docs[0].transform(query_df)
+        unique_qids = set(query_df["qid"].unique())
+
+        rewritten_queries_df = self.t5_qr.transform(query_df)
+
+        top_docs_df = self.top_docs[0].transform(rewritten_queries_df.copy())
         top_docs_df = (
             top_docs_df.sort_values(["qid", "score"], ascending=False)
             .groupby("qid")
@@ -118,4 +127,9 @@ class Baseline(base_module.Pipeline):
             .head(self.duo_t5[1])
         )
 
-        return self.combine_result_stages([top_docs_df, mono_t5_df, duo_t5_df])
+        result = self.combine_result_stages([top_docs_df, mono_t5_df, duo_t5_df])
+        result = self.pad_empty_documents(
+            result, unique_qids, self.top_docs[1], rewritten_queries_df
+        )
+
+        return result

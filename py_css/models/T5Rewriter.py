@@ -13,6 +13,7 @@ NUM_BEAMS: int = 10
 EARLY_STOPPING: bool = True
 
 COPY_REWRITTEN_QUERY_COLUMN: str = "rewritten_query"
+SEPERATOR_TOKEN: str = " ||| "
 
 
 class T5Rewriter(pt.Transformer):
@@ -46,26 +47,26 @@ class T5Rewriter(pt.Transformer):
         )
         super().__init__()
 
-    # the query has multiply " <sep> " in it. Create a list of the split with a maximum of 3 elements (last element is last, second last is middle, and the first n are joined)
+    # the query has multiply SEPERATOR_TOKEN in it. Create a list of the split with a maximum of 3 elements (last element is last, second last is middle, and the first n are joined)
     def __split_query_tokenize_join(self, q):
         """
         Split the query, tokenize the parts, and join them back together.
         """
-        l = q.split(" <sep> ")
+        l = q.split(SEPERATOR_TOKEN)
         if len(l) < 3:
             tokens = []
             for ll in l:
                 tokens.extend(self.tokenizer.tokenize(ll))
-                tokens.append(" <sep> ")
+                tokens.append(SEPERATOR_TOKEN)
             if len(tokens) > 0:
                 tokens.pop()
             return tokens
         else:
             tokens = []
-            tokens.extend(self.tokenizer.tokenize(" <sep> ".join(l[:-2])))
-            tokens.append(" <sep> ")
+            tokens.extend(self.tokenizer.tokenize(SEPERATOR_TOKEN.join(l[:-2])))
+            tokens.append(SEPERATOR_TOKEN)
             tokens.extend(self.tokenizer.tokenize(l[-2]))
-            tokens.append(" <sep> ")
+            tokens.append(SEPERATOR_TOKEN)
             tokens.extend(self.tokenizer.tokenize(l[-1]))
             return tokens
 

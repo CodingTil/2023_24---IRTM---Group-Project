@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 import logging
-from typing import Optional, List, Tuple, TypeAlias
+from typing import Optional, List, Tuple, TypeAlias, Set, Any, Dict, Generator
 import warnings
 
 import models.T5Rewriter as t5_rewriter_module
@@ -57,6 +57,9 @@ class Document:
 
 Context: TypeAlias = List[Tuple[Query, Optional[List[Document]]]]
 
+# If the retrieval model did not find any suitable or all N-required documents, this document shall be used as a placeholder
+EMPTY_PLACEHOLDER_DOC: Document = Document("-1", "")
+
 
 class Pipeline(ABC):
     """
@@ -98,6 +101,148 @@ class Pipeline(ABC):
             The transformed queries.
         """
         ...
+
+    def pad_empty_documents(
+        self, df: pd.DataFrame, qids: Set[str], N: int, queries_df: pd.DataFrame
+    ) -> pd.DataFrame:
+        """
+        Pad the dataframe with empty documents.
+
+        Parameters
+        ----------
+        df : pd.DataFrame
+            The dataframe to be padded.
+        qids : Set[str]
+            The query ids.
+        N : int
+            The number of documents each qid should have.
+        queries_df : pd.DataFrame
+            The queries dataframe.
+
+        Returns
+        -------
+        pd.DataFrame
+            The padded dataframe.
+        """
+        df_has_rewritten_queries: bool = (
+            t5_rewriter_module.COPY_REWRITTEN_QUERY_COLUMN in df.columns
+        )
+        rows_to_add: List[Dict[str, Any]] = []
+        for qid in qids:
+            # Check if qid is in top_doc_df (if not --> no documents at all were found)
+            if qid not in df["qid"].unique():
+                for i in range(1, N + 1):
+                    row = {
+                        "qid": qid,
+                        "docid": EMPTY_PLACEHOLDER_DOC.docno,
+                        "docno": EMPTY_PLACEHOLDER_DOC.docno,
+                        "text": EMPTY_PLACEHOLDER_DOC.content,
+                        "score": -i,
+                        "rank": i,
+                        "query_0": queries_df[queries_df["qid"] == qid]["query"].iloc[
+                            0
+                        ],
+                        "query": queries_df[queries_df["qid"] == qid]["query"].iloc[0],
+                    }
+                    if df_has_rewritten_queries:
+                        row[t5_rewriter_module.COPY_REWRITTEN_QUERY_COLUMN] = row[
+                            "query"
+                        ]
+                    rows_to_add.append(row)
+            else:
+                # if there are less than N occurrences of a qid, add base_module.EMPTY_PLACEHOLDER_DOC to fill up (need to adjust score)
+                if df.groupby("qid").size()[qid] < N:
+                    lowest_score = df[df["qid"] == qid]["score"].min()
+                    rank = int(round(df[df["qid"] == qid]["rank"].max()))
+                    for i in range(
+                        rank + 1,
+                        N + 1,
+                    ):
+                        row = {
+                            "qid": qid,
+                            "docid": EMPTY_PLACEHOLDER_DOC.docno,
+                            "docno": EMPTY_PLACEHOLDER_DOC.docno,
+                            "text": EMPTY_PLACEHOLDER_DOC.content,
+                            "score": lowest_score - i,
+                            "rank": i,
+                            "query_0": queries_df[queries_df["qid"] == qid][
+                                "query"
+                            ].iloc[0],
+                            "query": queries_df[queries_df["qid"] == qid]["query"].iloc[
+                                0
+                            ],
+                        }
+                        if df_has_rewritten_queries:
+                            row[t5_rewriter_module.COPY_REWRITTEN_QUERY_COLUMN] = row[
+                                "query"
+                            ]
+                        rows_to_add.append(row)
+        if len(rows_to_add) > 0:
+            df = pd.concat([df, pd.DataFrame(rows_to_add)])
+            df = df.sort_values(["qid", "rank"], ascending=[True, True])
+
+        return df
+
+    def replace_empty_placeholder_docs(
+        self, df: pd.DataFrame, context_list: List[Tuple[Query, Context]]
+    ) -> pd.DataFrame:
+        """
+        Replace any empty placeholder documents with documents from the context, if possible.
+
+        Parameters
+        ----------
+        df : pd.DataFrame
+            The dataframe to be replaced.
+        context_list : List[Tuple[Query, Context]]
+            The context of the queries.
+
+        Returns
+        -------
+        pd.DataFrame
+            The dataframe with the replaced documents.
+        """
+
+        def gen_context_docs(context: Context) -> Generator[Document, None, None]:
+            for _, docs in reversed(context):
+                if docs is not None:
+                    for doc in docs:
+                        if doc.docno != EMPTY_PLACEHOLDER_DOC.docno:
+                            yield doc
+
+        for query, context in context_list:
+            # check if there is a row in the df with "qid" == query.query_id, where "docno" == EMPTY_PLACEHOLDER_DOC.docno
+            # if yes, replace it with the top document from the context
+            while True:
+                if not df[
+                    (df["qid"] == query.query_id)
+                    & (df["docno"] == EMPTY_PLACEHOLDER_DOC.docno)
+                ].empty:
+                    # Check if gen_docs has next element
+                    doc: Document
+                    doc_gen = gen_context_docs(context)
+                    try:
+                        doc = next(doc_gen)
+                        while (
+                            doc.docno
+                            in df[(df["qid"] == query.query_id)]["docno"].unique()
+                        ):
+                            doc = next(doc_gen)
+                    except StopIteration:
+                        break
+                    # Get the row index of the row to be replaced (of all of the rows satisfying the condition, take the one with min "rank" value)
+                    row_index = df[
+                        (df["qid"] == query.query_id)
+                        & (df["docno"] == EMPTY_PLACEHOLDER_DOC.docno)
+                    ]["rank"].idxmin()
+
+                    # Of that row, set docno and docid to doc.no, and text to doc.content
+                    df.loc[row_index, "docno"] = doc.docno
+                    df.loc[row_index, "docid"] = doc.docno
+                    df.loc[row_index, "text"] = doc.content
+                else:
+                    break
+
+        return df
 
     def combine_result_stages(self, results: List[pd.DataFrame]) -> pd.DataFrame:
         """
@@ -188,6 +333,7 @@ class Pipeline(ABC):
         query_str = self.transform_input(query, context)
         query_df = pd.DataFrame([{"qid": query.query_id, "query": query_str}])
         result = self.transform(query_df)
+        result = self.replace_empty_placeholder_docs(result, [(query, context)])
 
         if t5_rewriter_module.COPY_REWRITTEN_QUERY_COLUMN in result.columns:
             temp_result = result[result["qid"] == query.query_id]
@@ -239,6 +385,7 @@ class Pipeline(ABC):
             ]
         )
         result = self.transform(query_df)
+        result = self.replace_empty_placeholder_docs(result, inputs)
 
         if t5_rewriter_module.COPY_REWRITTEN_QUERY_COLUMN in result.columns:
             for query, _ in inputs:

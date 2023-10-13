@@ -53,7 +53,7 @@ class BaselinePRF(base_module.Pipeline):
         self.t5_qr = t5_rewriter.T5Rewriter()
         bm25 = pt.BatchRetrieve(index, wmodel="BM25", metadata=["docno", "text"])
         rm3 = pt.rewrite.RM3(index, fb_docs=rm3_fb_docs, fb_terms=rm3_fb_terms)
-        self.top_docs = (((bm25 % rm3_fb_docs) >> rm3 >> bm25) % bm25_docs, bm25_docs)
+        self.top_docs = ((bm25 >> rm3 >> bm25) % bm25_docs, bm25_docs)
         self.mono_t5 = (MonoT5ReRanker(batch_size=BATCH_SIZE), mono_t5_docs)
         self.duo_t5 = (DuoT5ReRanker(batch_size=BATCH_SIZE), duo_t5_docs)
 
@@ -66,7 +66,11 @@ class BaselinePRF(base_module.Pipeline):
         doc_was_added = False
         if len(context) > 0:
             last_docs = context[-1][1]
-            if last_docs is not None and len(last_docs) > 0:
+            if (
+                last_docs is not None
+                and len(last_docs) > 0
+                and last_docs[0].docno != base_module.EMPTY_PLACEHOLDER_DOC.docno
+            ):
                 history.append(last_docs[0].content)
                 doc_was_added = True
         sum_of_lengths = sum([len(q) for q in history]) + len(query.query)
@@ -97,7 +101,7 @@ class BaselinePRF(base_module.Pipeline):
                         remaining = 0
 
         history.append(query.query)
-        new_query = " <sep> ".join(history)
+        new_query = t5_rewriter.SEPERATOR_TOKEN.join(history)
         return new_query
 
     def transform(self, query_df: pd.DataFrame) -> pd.DataFrame:
@@ -105,48 +109,23 @@ class BaselinePRF(base_module.Pipeline):
 
         rewritten_queries_df = self.t5_qr.transform(query_df)
 
-        assert unique_qids == set(
-            rewritten_queries_df["qid"].unique()
-        ), f"{unique_qids} != {set(rewritten_queries_df['qid'].unique())}"
-
         top_docs_df = self.top_docs[0].transform(rewritten_queries_df.copy())
 
-        assert unique_qids == set(
-            top_docs_df["qid"].unique()
-        ), f"{unique_qids} != {set(top_docs_df['qid'].unique())}"
-
-        # assert that each qid is present 1000 times
-        assert (
-            top_docs_df.groupby("qid").size() == 1000
-        ).all(), f"{top_docs_df.groupby('qid').size().unique()}"
+        # Now add in the rewritten queries to the top docs
+        top_docs_df = pt.model.push_queries(top_docs_df, inplace=True)
+        top_docs_df = pd.merge(
+            top_docs_df,
+            rewritten_queries_df[["qid", t5_rewriter.COPY_REWRITTEN_QUERY_COLUMN]],
+            on="qid",
+            how="left",
+        )
+        top_docs_df["query"] = top_docs_df[t5_rewriter.COPY_REWRITTEN_QUERY_COLUMN]
 
         top_docs_df = (
             top_docs_df.sort_values(["qid", "score"], ascending=False)
             .groupby("qid")
             .head(self.top_docs[1])
         )
-
-        assert unique_qids == set(
-            top_docs_df["qid"].unique()
-        ), f"{unique_qids} != {set(top_docs_df['qid'].unique())}"
-
-        assert (
-            top_docs_df.groupby("qid").size() == 1000
-        ).all(), f"{top_docs_df.groupby('qid').size().unique()}"
-
-        # Now add in the rewritten queries to the top docs
-        top_docs_df = pt.model.push_queries(top_docs_df, inplace=True)
-        top_docs_df = pd.merge(
-            top_docs_df,
-            rewritten_queries_df[["qid", "rewritten_query"]],
-            on="qid",
-            how="left",
-        )
-        top_docs_df["query"] = top_docs_df["rewritten_query"]
-
-        assert unique_qids == set(
-            top_docs_df["qid"].unique()
-        ), f"{unique_qids} != {set(top_docs_df['qid'].unique())}"
 
         mono_t5_df = self.mono_t5[0].transform(
             top_docs_df.groupby("qid").head(self.mono_t5[1])
@@ -157,10 +136,6 @@ class BaselinePRF(base_module.Pipeline):
             .head(self.mono_t5[1])
         )
 
-        assert unique_qids == set(
-            mono_t5_df["qid"].unique()
-        ), f"{unique_qids} != {set(mono_t5_df['qid'].unique())}"
-
         duo_t5_df = self.duo_t5[0].transform(
             mono_t5_df.groupby("qid").head(self.duo_t5[1])
         )
@@ -170,14 +145,9 @@ class BaselinePRF(base_module.Pipeline):
             .head(self.duo_t5[1])
         )
 
-        assert unique_qids == set(
-            duo_t5_df["qid"].unique()
-        ), f"{unique_qids} != {set(duo_t5_df['qid'].unique())}"
-
         result = self.combine_result_stages([top_docs_df, mono_t5_df, duo_t5_df])
-
-        assert unique_qids == set(
-            result["qid"].unique()
-        ), f"{unique_qids} != {set(result['qid'].unique())}"
+        result = self.pad_empty_documents(
+            result, unique_qids, self.top_docs[1], rewritten_queries_df
+        )
 
         return result
