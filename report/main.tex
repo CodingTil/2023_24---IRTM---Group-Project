@@ -80,12 +80,12 @@ The vast domain of natural language processing (NLP) revolves around the underst
 
 Enter the Text-to-Text Transfer Transformer (\texttt{T5}) \cite{raffel2020exploring}. This work by Raffel et al. introduces transfer learning in NLP, aiming to craft a versatile model that can be used for any NLP problem. In essence, T5 models first learn the basics of language. Then, they're sharpened for particular tasks using targeted data. It's common to find models that have been trained in this manner for any specific NLP problem.
 
-\subsection*{\texttt{doc2query}}\label{sec:doc2query}
+\subsection*{\texttt{doc2query} Document Expansion}\label{sec:doc2query}
 Traditional retrieval techniques, such as \texttt{BM25}, rely primarily on term occurrences in both queries and documents. However, they often overlook the semantics of the content. As a result, documents that may be semantically relevant to a query might be scored as non-relevant due to differences in syntax or terminology. Dense retrieval methods, which emphasize semantic similarities between texts, can address this problem but are computationally taxing during retrieval.
 
 A notable solution to this is the \texttt{doc\-2query} method proposed by Nogueira et al. \cite{nogueira2019document}. It employs a text-to-text transformer to convert documents into queries. By generating and appending a few of these transformed queries to the original document, classical retrieval methods show significantly improved performance. This is because these additional queries often capture semantic nuances similar to those in the actual query \cite{nogueira2019document,nogueira2019doc2query,pradeep2021expando}. Importantly, \texttt{doc\-2query} shifts the computational load to the indexing phase, ensuring minimal performance lag during retrieval. By leveraging the \texttt{T5} model, the authors further enhanced the query generation quality, leading to the variation known as \texttt{doc\-TTTTTquery}, \texttt{doc\--T5query}, or \texttt{doc\-2query\--T5} \cite{nogueira2019doc2query}.
 
-\subsection*{\texttt{SPARTA}}\label{sec:sparta}
+\subsection*{\texttt{SPARTA} Sparse Retrieval}\label{sec:sparta}
 \texttt{SPARTA}, introduced by Zhao et al. \cite{zhao2020sparta}, represents a nuanced take on sparse retrieval. At its core, it works by encoding documents into sparse representations during the indexing phase. These representations not only capture the document's actual content but also incorporate terms that are semantically resonant, even if they're not present in the document. This underlying principle echoes the rationale of approaches like \texttt{doc2query} and dense retrieval models.
 
 Yet, where \texttt{SPARTA} differentiates itself is in its retrieval phase. Unlike dense retrieval models, it retrieves pertinent documents using straightforward index lookups, mirroring lexical retrieval strategies like \texttt{BM25} \cite{zhao2020sparta}.
