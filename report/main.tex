@@ -11,7 +11,7 @@
 
 \begin{document}
 
-\title{Evaluation of Conversational Search Engines}
+\title{Comparative Study of Conversational Search Engine Retrieval Pipelines}
 \subtitle{Group ID: \#5}
 
 % AUTHORS:
@@ -73,34 +73,44 @@ A vital component that sets a CSE apart is its query rewriting mechanism. This f
 \section{Related Work}\label{sec:related}
 In this section, we delve into pertinent research encompassing the realms of conversational search engines and the broader area of information retrieval. While certain highlighted studies do not directly cater to conversational search engines or explicit information retrieval, their techniques remain invaluable in various stages of the conversational retrieval process.
 
-\subsection*{\texttt{RM3} Pseudo-Relevance Feedback Query Expansion}
+\subsection*{Pseudo-Relevance Feedback by Query Expansion}\label{sec:prf}
 
 \subsection*{Text-to-Text Transfer Transformer}\label{sec:t5}
 The vast domain of natural language processing (NLP) revolves around the understanding of natural language, whether presented in text or speech form. NLP aspires to equip computers with the capability to grasp the depth of human language and harness this understanding to execute a range of tasks, such as text summarization, machine translation, and question answering. Given the diverse nature of these tasks in terms of their input, output, and underlying challenges, developing a unified model proficient across the entire spectrum poses a significant challenge.
 
 Enter the Text-to-Text Transfer Transformer (\texttt{T5}) \cite{raffel2020exploring}. This work by Raffel et al. introduces transfer learning in NLP, aiming to craft a versatile model that can be used for any NLP problem. In essence, T5 models first learn the basics of language. Then, they're sharpened for particular tasks using targeted data. It's common to find models that have been trained in this manner for any specific NLP problem.
 
-\subsection*{\texttt{doc2query}}
+\subsection*{\texttt{doc2query}}\label{sec:doc2query}
 Traditional retrieval techniques, such as \texttt{BM25}, rely primarily on term occurrences in both queries and documents. However, they often overlook the semantics of the content. As a result, documents that may be semantically relevant to a query might be scored as non-relevant due to differences in syntax or terminology. Dense retrieval methods, which emphasize semantic similarities between texts, can address this problem but are computationally taxing during retrieval.
 
 A notable solution to this is the \texttt{doc\-2query} method proposed by Nogueira et al. \cite{nogueira2019document}. It employs a text-to-text transformer to convert documents into queries. By generating and appending a few of these transformed queries to the original document, classical retrieval methods show significantly improved performance. This is because these additional queries often capture semantic nuances similar to those in the actual query \cite{nogueira2019document,nogueira2019doc2query,pradeep2021expando}. Importantly, \texttt{doc\-2query} shifts the computational load to the indexing phase, ensuring minimal performance lag during retrieval. By leveraging the \texttt{T5} model, the authors further enhanced the query generation quality, leading to the variation known as \texttt{doc\-TTTTTquery}, \texttt{doc\--T5query}, or \texttt{doc\-2query\--T5} \cite{nogueira2019doc2query}.
 
-\subsection*{\texttt{monoT5} \& \texttt{duoT5} Rerankers}
+\subsection*{\texttt{SPARTA}}\label{sec:sparta}
+\texttt{SPARTA}, introduced by Zhao et al. \cite{zhao2020sparta}, represents a nuanced take on sparse retrieval. At its core, it works by encoding documents into sparse representations during the indexing phase. These representations not only capture the document's actual content but also incorporate terms that are semantically resonant, even if they're not present in the document. This underlying principle echoes the rationale of approaches like \texttt{doc2query} and dense retrieval models.
+
+Yet, where \texttt{SPARTA} differentiates itself is in its retrieval phase. Unlike dense retrieval models, it retrieves pertinent documents using straightforward index lookups, mirroring lexical retrieval strategies like \texttt{BM25} \cite{zhao2020sparta}.
+
+However, in real-world applications, \texttt{SPARTA} faces challenges. Several other models, including \texttt{BM25} and \texttt{doc2query-T5}, surpass it in ranking efficacy. Additionally, its indexing footprint is substantially larger compared to alternatives like \texttt{doc2query-T5} \cite{thakur2021beir}.
+
+\subsection*{\texttt{monoT5} \& \texttt{duoT5} Rerankers}\label{sec:rerankers}
 \texttt{monoT5} and \texttt{duoT5} are neural re-rankers, also developed by Nogueira et al., which attempt to inject semantic understanding into the retrieval process \cite{nogueira2020document,nogueira2019multi}. Using the \texttt{T5} model, they re-rank a list of documents based on their semantic relevance to a given query. Specifically, \texttt{monoT5} processes a query and a single document, outputting a relevance score. In contrast, \texttt{duoT5} considers a query and two documents, determining which document is more relevant. Although \texttt{duoT5} offers a more nuanced ranking, its pairwise comparison method makes it computationally heavier. Hence, a staged re-ranking approach is proposed: first using \texttt{monoT5} for the top $k$ documents and subsequently applying \texttt{duoT5} to a smaller subset, the top $l$, where $l \ll k$ \cite{nogueira2019multi,pradeep2021expando}.
 
-\subsection*{\texttt{SPARTA} Reranker}
 
-
-\subsection*{Expando-Mono-Duo Design Pattern}
+\subsection*{Expando-Mono-Duo Design Pattern}\label{sec:expando}
 The same research team introduced a strategic pattern for integrating the above tools into retrieval pipelines, termed the Expando-Mono-Duo design pattern \cite{pradeep2021expando}. Here's how it works: During indexing, \texttt{doc2query-T5} is employed to enhance document representation and better the initial retrieval results from methods like \texttt{BM25}. The retrieved results are then re-ranked with \texttt{monoT5}. A selected top tier from this list undergoes another re-ranking using \texttt{duoT5}. Trials show that this composite approach leads to marked improvements in result quality across multiple evaluation metrics \cite{pradeep2021expando}.
 
-\subsection*{\texttt{T5} Conversational Query Rewriting}
+\subsection*{Conversational Query Rewriting}\label{sec:cqr}
 
+Conversational search engines distinguish themselves from standard search engines by determining document relevance through the entirety of a conversation, not just the immediate query. In conversational contexts, subsequent questions often lean on prior interactions, implying that previous questions and answers must be factored in when fetching relevant documents. However, there's also a need to cater to conversation shifts where the immediate query doesn't relate to preceding exchanges. Blindly considering the entire conversational history in such cases could detriment retrieval accuracy.
+
+Elgohary et al. address this challenge with an innovative approach \cite{elgohary2019can}. They suggest reshaping the current query based on the overarching conversation. This reformulated query is designed to function autonomously within conventional retrieval pipelines. In essence, this technique extends the utility of standard search engines to conversational question-answering scenarios by introducing a preceding conversational query modification stage.
+
+Employing text-to-text transformers, like \texttt{T5}, can be instrumental in achieving this rewrite. These models are nurtured to revamp the immediate query, factoring in the conversational backdrop. Studies validate the efficacy of this approach, highlighting its capacity to enhance the retrieval accuracy of traditional search engines in conversational contexts \cite{elgohary2019can,anantha2020open,Lajewska:2023:ECIR}.
 
 
 
 \section{Baseline Method}\label{sec:baseline}
-Our baseline method is inspired by the baseline method presented by Łajewska et al. \cite{Lajewska:2023:ECIR}. Our baseline method is structured in the following sequence:
+Our baseline method is inspired by the baseline method presented by Łajewska et al. \cite{Lajewska:2023:ECIR}. It is structured in the following sequence:
 \begin{enumerate}
 	\item	\texttt{T5} Query Rewriting
 	\item	\texttt{BM25} Retrieval
@@ -111,7 +121,7 @@ Our baseline method is inspired by the baseline method presented by Łajewska et
 			\end{enumerate}
 \end{enumerate}
 
-\subsection{T5 Query Rewriting}
+\subsection{\texttt{T5} Query Rewriting}
 In conversation search engines, query rewriting is the crucial component to include the semantics of the conversation history into the currently asked query, which results into a singular rewritten query that can be fed into the retrieval pipeline.
 
 For this purpose, we include all the previously rewritten queries $q'_0 \dots q'_{n-1}$ of our conversation, as well as the response $r_{n-1}$ of the CSE to the previous rewritten query $q'_{n-1}$ into the current query $q_n$. This is done by concatenating the previous rewritten queries and the response into a single string:
@@ -124,14 +134,62 @@ We have found through experimentation that this mere concatenation is insufficie
 
 Driven by these insights, we have turned our attention to other query rewriting techniques. \texttt{Pyterrier} provides the \texttt{Sequential\-Dependence} query rewriting method\footnote{URL: \url{https://pyterrier.readthedocs.io/en/latest/rewrite.html\#sequentialdependence}}. We have found, however, that this rewriter also does not produce the desired results.
 
-Subsequent exploration led us to the \texttt{T5} neural query rewriter trained for conversational question rewriting\footnote{URL: \url{https://huggingface.co/castorini/t5-base-canard}}. With this method, $q'_n$ closely mirrored $q_n$, subtly infusing it with the conversation's context, particularly when no drastic topic alterations were identified. A valuable by-product was the concise nature of the rewritten query, a departure from the growing length observed previously.
+Subsequent exploration led us to the \texttt{T5} neural query rewriter trained for conversational question rewriting, see Section \ref{sec:cqr}. With this method, $q'_n$ closely mirrored $q_n$, subtly infusing it with the conversation's context, particularly when no drastic topic alterations were identified. A valuable by-product was the concise nature of the rewritten query, a departure from the growing length observed previously. Since retrieval latency is a critical factor, we utilized a smaller \texttt{T5} model: \texttt{castorini\-/t5\--base\--canard}\footnote{URL: \url{https://huggingface.co/castorini/t5-base-canard}}
 
-\subsection{BM25 Retrieval}
+\subsection{\texttt{BM25} Retrieval}
 We settled on the \texttt{BM25} retrieval method, a commonly used formula in the realm of information retrieval, for its simplicity and its deployment in the reference system, allowing for direct comparisons.
 
 \subsection{Re-ranking}
-The re-ranking stage of our baseline system consists of two stages: First, the top 1000 documents retrieved by the \texttt{BM25} retrieval method are re-ranked using the \texttt{monoT5} reranker. Afterwards, the top 50 documents of the previous re-ranking stage are rearranged using the \texttt{duoT5} reranker. The precise count of documents subject to reranking at each stage is a hyperparameter of our system, allowing to balance computational cost and result quality. These rerankers were implemented in the \texttt{pyterrier\_t5} library.\footnote{URL: \url{https://github.com/terrierteam/pyterrier_t5}}
+The re-ranking stage of our baseline system consists of two stages: First, the top 1000 documents retrieved by the \texttt{BM25} retrieval method are re-ranked using the \texttt{monoT5} reranker. Afterwards, the top 50 documents of the previous re-ranking stage are rearranged using the \texttt{duoT5} reranker, see Section \ref{sec:rerankers}. The precise count of documents subject to reranking at each stage is a hyperparameter of our system, allowing to balance computational cost and result quality. These rerankers were implemented in the \texttt{pyterrier\_t5} library.\footnote{URL: \url{https://github.com/terrierteam/pyterrier_t5}} Again, since a low latency of our retrieval pipeline is crucial to us, we utilized smaller \texttt{T5} models: \texttt{castorini\-/monot5\--base\--msmarco}\footnote{URL: \url{https://huggingface.co/castorini/monot5-base-msmarco}} for \texttt{monoT5} and \texttt{castorini\-/duot5\--base\--msmarco}\footnote{URL: \url{https://huggingface.co/castorini/duot5-base-msmarco}} for \texttt{duoT5}.
 
+\section{Incorporating Pseudo-Relevance Feedback into Our Baseline}\label{sec:baseline+rm3}
+
+Recognizing the substantial performance enhancements associated with pseudo-relevance feedback, we felt compelled to integrate a query expansion mechanism into our baseline retrieval method, see Section \ref{sec:baseline}. Our choice fell upon the \texttt{RM3} query expansion technique, well-established for its robustness and acceptance within the information retrieval community. For a deeper dive into its mechanics and principles, readers are directed to Section \ref{sec:prf}.
+
+In the \texttt{Pyterrier} framework, the setup requires that any query expansion follows an initial retrieval phase. This initial retrieval fetches the top $p$ documents, forming the foundation for subsequent query expansion using \texttt{RM3}. With the query expanded, it's then passed into a secondary retrieval phase to retrieve the final document set for the end-user. And, to fine-tune the output, we again apply re-ranking using both \texttt{monoT5} and \texttt{duoT5}.
+
+Henceforth, we'll label this integrated retrieval approach as "baseline + \texttt{RM3}", which is structured as follows:
+\begin{enumerate}
+	\item	\texttt{T5} Query Rewriting
+	\item	\texttt{BM25} Retrieval
+	\item	\texttt{RM3} Pseudo-Relevance Feedback Query Expansion
+	\item	\texttt{BM25} Retrieval
+	\item	Re-ranking
+			\begin{enumerate}
+				\item	Re-ranking using \texttt{monoT5}
+				\item	Top-document re-ranking using \texttt{duoT5}
+			\end{enumerate}
+\end{enumerate}
+
+\section{Document Expansion Method}
+JUST IDEA
+\begin{enumerate}
+	\setcounter{enumi}{-1}
+	\item	\texttt{doc2query-T5} Document Expansion
+	\item	\texttt{T5} Query Rewriting
+	\item	\texttt{BM25} Retrieval
+	\item	Re-ranking
+			\begin{enumerate}
+				\item	Re-ranking using \texttt{monoT5}
+				\item	Top-document re-ranking using \texttt{duoT5}
+			\end{enumerate}
+\end{enumerate}
+
+\section{Extending the Document Expansion Method with Pseudo-Relevance Feedback}
+JUST IDEA
+\begin{enumerate}
+	\setcounter{enumi}{-1}
+	\item	\texttt{doc2query-T5} Document Expansion
+	\item	\texttt{T5} Query Rewriting
+	\item	\texttt{BM25} Retrieval
+	\item	\texttt{RM3} Pseudo-Relevance Feedback Query Expansion
+	\item	\texttt{BM25} Retrieval
+	\item	Re-ranking
+			\begin{enumerate}
+				\item	Re-ranking using \texttt{monoT5}
+				\item	Top-document re-ranking using \texttt{duoT5}
+			\end{enumerate}
+\end{enumerate}
 
 \section{Advanced Method}\label{sec:advanced}
 Explain what you are taking as your advanced method(s), as well as why this is a promising attempt to outperform the baseline method, and why you are making specific implementation choices.
