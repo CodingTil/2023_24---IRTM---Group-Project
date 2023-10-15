@@ -12,8 +12,8 @@ import pandas as pd
 
 
 MODEL_NAME: str = "castorini/doc2query-t5-large-msmarco"
-MAX_LENGTH: int = 512
-BATCH_SIZE: int = 64
+MAX_LENGTH: int = 256
+BATCH_SIZE: int = 32
 DEVICE: str = "cuda" if torch.cuda.is_available() else "cpu"
 NUM_SAMPLES: int = 3
 
@@ -31,8 +31,12 @@ class Doc2Query:
         The T5 model to use
     tokenizer : T5TokenizerFast
         The T5 tokenizer to use
+    device : torch.device
+        The device to use
     max_length : int
         The maximum length of the input
+    num_samples : int
+        The number of samples to generate
     batch_size : int
         The batch size to use
     input_file : Path
@@ -41,6 +45,8 @@ class Doc2Query:
         The output file
     output_df : pd.DataFrame
         The output dataframe
+    pattern : re.Pattern
+        The pattern to remove URLs from the input
     """
 
     model: T5ForConditionalGeneration
