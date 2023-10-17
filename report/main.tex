@@ -54,7 +54,7 @@ Our project centers on building a conversational search engine, a system that no
 
 Our research will utilize the MS MARCO dataset, a comprehensive collection of 8.8 million documents. Efficiently retrieving relevant documents from this vast pool necessitates an indexing process, which we will execute using the \texttt{pyterrier} API.
 
-Section \ref{sec:problem} will articulate the specific problem we aim to address. We will then elaborate on the methodologies behind our retrieval pipelines. Broadly, these pipelines can be broken down into stages: Query revision, single- or multi-pass retrieval, and reranking. Sections \ref{sec:baseline} and \ref{sec:advanced} will delve into our baseline and advanced techniques for each of these stages, respectively. Our report will conclude in section \ref{sec:results}, where we evaluate and compare the effectiveness of our systems, highlighting the strengths and potential areas of enhancement in our advanced approaches.
+Section \ref{sec:problem} will articulate the specific problem we aim to address. In Section \ref{sec:related} we will explore literature relevant to our retrieval pipelines. We will then elaborate on the methodologies behind our retrieval pipelines in Sections \ref{sec:baseline}, \ref{sec:baseline+rm3}, \ref{sec:doc2query-method}, and \ref{sec:doc2query-method+rm3}. Our report will conclude in Section \ref{sec:results}, where we evaluate and compare the effectiveness of our systems, highlighting the strengths and potential areas of enhancement in our advanced approaches.
 
 The codebase for our project can be found on GitHub\footnote{URL: \url{https://github.com/CodingTil/2023_24---IRTM---Group-Project}}.
 
@@ -71,7 +71,7 @@ A vital component that sets a CSE apart is its query rewriting mechanism. This f
 
 
 \section{Related Work}\label{sec:related}
-In this section, we delve into pertinent research encompassing the realms of conversational search engines and the broader area of information retrieval. While certain highlighted studies do not directly cater to conversational search engines or explicit information retrieval, their techniques remain invaluable in various stages of the conversational retrieval process.
+In this Section, we delve into pertinent research encompassing the realms of conversational search engines and the broader area of information retrieval. While certain highlighted studies do not directly cater to conversational search engines or explicit information retrieval, their techniques remain invaluable in various stages of the conversational retrieval process.
 
 \subsection*{Pseudo-Relevance Feedback by Query Expansion}\label{sec:prf}
 
@@ -161,7 +161,7 @@ Henceforth, we'll label this integrated retrieval approach as "baseline + \textt
 			\end{enumerate}
 \end{enumerate}
 
-\section{Document Expansion Method}
+\section{Document Expansion Method}\label{sec:doc2query-method}
 JUST IDEA
 \begin{enumerate}
 	\setcounter{enumi}{-1}
@@ -175,7 +175,7 @@ JUST IDEA
 			\end{enumerate}
 \end{enumerate}
 
-\section{Extending the Document Expansion Method with Pseudo-Relevance Feedback}
+\section{Extending the Document Expansion Method with Pseudo-Relevance Feedback}\label{sec:doc2query-method+rm3}
 JUST IDEA
 \begin{enumerate}
 	\setcounter{enumi}{-1}
@@ -209,7 +209,7 @@ trec_eval -c -m recall.1000 -m map -m recip_rank
 {GENERATED_TREC_RUNFILE}
 \end{verbatim}
 
-As stated in section \ref{sec:baseline}, the baseline method can be parameterized in a few different ways. For this evaluation, we utilized the following configurations: The document retrieval (\texttt{BM25}) used the default parameters from \texttt{pyterrier}\footnote{URL: \url{https://pyterrier.readthedocs.io/en/latest/terrier-retrieval.html}} to retrieve the 1000 most-relevant documents for each query. All 1000 documents were then reranked using the \texttt{monoT5} reranker. Because of the high computational cost of the \texttt{duoT5} reranker, only of those 1000 documents the best 50 documents were then reordered using this reranker.
+As stated in Section \ref{sec:baseline}, the baseline method can be parameterized in a few different ways. For this evaluation, we utilized the following configurations: The document retrieval (\texttt{BM25}) used the default parameters from \texttt{pyterrier}\footnote{URL: \url{https://pyterrier.readthedocs.io/en/latest/terrier-retrieval.html}} to retrieve the 1000 most-relevant documents for each query. All 1000 documents were then reranked using the \texttt{monoT5} reranker. Because of the high computational cost of the \texttt{duoT5} reranker, only of those 1000 documents the best 50 documents were then reordered using this reranker.
 
 For the extension of the baseline, the baseline + \texttt{RM3} method, we utilized the same configuration for these components. The \texttt{RM3} query expansion component was parameterized to expand the query by 26 terms, using the top 17 documents retrieved by the initial \texttt{BM25} retrieval.
 
@@ -233,7 +233,7 @@ Furthermore, comparing the results of the baseline with those of the baseline + 
 
 \section{Discussion and Conclusions}
 
-Summarize and discuss different challenges you faced and how you solved those. Include interpretations of the key facts and trends you observed and pointed out in the Results section. Which method performed best, and why? Speculate: What could you have done differently, and what consequences would that have had?
+Summarize and discuss different challenges you faced and how you solved those. Include interpretations of the key facts and trends you observed and pointed out in the Results Section. Which method performed best, and why? Speculate: What could you have done differently, and what consequences would that have had?
 
 %%
 %% If your work has an appendix, this is the place to put it.
