@@ -211,6 +211,8 @@ trec_eval -c -m recall.1000 -m map -m recip_rank
 
 As stated in section \ref{sec:baseline}, the baseline method can be parameterized in a few different ways. For this evaluation, we utilized the following configurations: The document retrieval (\texttt{BM25}) used the default parameters from \texttt{pyterrier}\footnote{URL: \url{https://pyterrier.readthedocs.io/en/latest/terrier-retrieval.html}} to retrieve the 1000 most-relevant documents for each query. All 1000 documents were then reranked using the \texttt{monoT5} reranker. Because of the high computational cost of the \texttt{duoT5} reranker, only of those 1000 documents the best 50 documents were then reordered using this reranker.
 
+For the extension of the baseline, the baseline + \texttt{RM3} method, we utilized the same configuration for these components. The \texttt{RM3} query expansion component was parameterized to expand the query by 26 terms, using the top 17 documents retrieved by the initial \texttt{BM25} retrieval.
+
 \begin{table}[h]
 \begin{center}
 	\caption{Performance of the different methods on the MS MARCO document collection.}
@@ -226,6 +228,8 @@ As stated in section \ref{sec:baseline}, the baseline method can be parameterize
 \end{table}
 
 As can be seen in table \ref{table:1}, our baseline method is at least as efficient as the reference system provided by the project owners. Thus, our baseline method fulfills the hard requirement of the project.
+
+Furthermore, comparing the results of the baseline with those of the baseline + \texttt{RM3} approach, one can see that simply by adding the query expansion component into the retrieval pipeline one can improve the quality of the ranked list of documents across all measured metrics.
 
 \section{Discussion and Conclusions}
 
