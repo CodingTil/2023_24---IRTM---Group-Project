@@ -1,6 +1,4 @@
-import signal
-import sys
-from typing import List, Tuple, Dict
+from typing import List, Tuple, Dict, Set
 import re
 from pathlib import Path
 
@@ -57,7 +55,6 @@ class Doc2Query:
     batch_size: int
     input_file: Path
     output_file: Path
-    output_df: pd.DataFrame
     pattern: re.Pattern
 
     def __init__(
@@ -90,13 +87,6 @@ class Doc2Query:
         output_file : Path, optional
             The output file, by default OUTPUT_FILE
         """
-        signal.signal(
-            signal.SIGINT, lambda signo, _: self.__del__() and sys.exit(signo)
-        )
-        signal.signal(
-            signal.SIGTERM, lambda signo, _: self.__del__() and sys.exit(signo)
-        )
-
         self.device = torch.device(device)
         self.model = (
             T5ForConditionalGeneration.from_pretrained(model_name)
@@ -114,16 +104,6 @@ class Doc2Query:
         self.output_file = output_file
         assert input_file.exists()
         self.input_file = input_file
-        if self.output_file.exists():
-            self.output_df = pd.read_table(
-                self.output_file,
-                names=["docid"] + [f"query_{i}" for i in range(num_samples)],
-                header=None,
-            )
-        else:
-            self.output_df = pd.DataFrame(
-                columns=["docid"] + [f"query_{i}" for i in range(num_samples)]
-            )
         self.pattern = re.compile("^\\s*http\\S+")
 
     def add_new_queries(self, new_queries: List[Tuple[str, List[str]]]):
@@ -144,44 +124,24 @@ class Doc2Query:
 
         for docid, queries in new_queries:
             assert 1 <= len(queries) <= self.num_samples
+            new_data["docid"].append(docid)
+            for i, query in enumerate(queries):
+                new_data[f"query_{i}"].append(query)
 
-            if len(queries) == self.num_samples:
-                # We do not append the queries if they are already in the output dataframe
-                # remove docid from output_df
-                if docid in self.output_df["docid"].values:
-                    self.output_df = self.output_df[self.output_df["docid"] != docid]
-                new_data["docid"].append(docid)
-                for i, query in enumerate(queries):
-                    new_data[f"query_{i}"].append(query)
-            else:
-                assert docid in self.output_df["docid"].values
-                # We append the queries if they are not in the output dataframe
-                existing_queries: List[str] = []
-                for i in range(self.num_samples):
-                    # fetch the existing queries, if they are not NaN / None / strip() == "" etc.
-                    query = self.output_df[self.output_df["docid"] == docid][
-                        f"query_{i}"
-                    ].values[0]
-                    if query is not None and query.strip() != "":
-                        existing_queries.append(query)
+        self.write_output(new_data)
 
-                assert len(existing_queries) + len(queries) == self.num_samples
+    def write_output(self, new_data: Dict[str, List[str]]):
+        df = pd.DataFrame(new_data)
+        df.to_csv(self.output_file, mode="a", sep="\t", index=False, header=False)
 
-                # remove docid from output_df
-                self.output_df = self.output_df[self.output_df["docid"] != docid]
-                new_data["docid"].append(docid)
-                for i, query in enumerate(existing_queries + queries):
-                    new_data[f"query_{i}"].append(query)
+    def _already_processed_docids(self) -> Set[int]:
+        """Get set of docids that have already been processed."""
+        if not self.output_file.exists():
+            return set()
 
-        self.output_df = pd.concat(
-            [self.output_df, pd.DataFrame(new_data)], ignore_index=True
-        )
-
-    def write_output(self):
-        self.output_df.to_csv(self.output_file, sep="\t", index=False, header=False)
-
-    def __del__(self):
-        self.write_output()
+        with open(self.output_file, "r") as f:
+            # Reading only the docid column (1st column) and returning it as a set
+            return set(int(line.split("\t")[0]) for line in f.readlines())
 
     def generate_queries(self):
         """
@@ -190,17 +150,12 @@ class Doc2Query:
         input_df = pd.read_table(
             self.input_file, names=["docid", "document"], header=None
         )
-        # remove docids that are already in the output dataframe, that do not have any NaN/None/strip() == "" values
-        skipping_ids: int = 0
-        valid_docids = set(self.output_df["docid"])
-        for _, row in self.output_df.iterrows():
-            for i in range(self.num_samples):
-                query = row[f"query_{i}"]
-                if query is None or query.strip() == "":
-                    valid_docids.remove(row["docid"])
-                    skipping_ids += 1
-                    break
-        input_df = input_df[~input_df["docid"].isin(valid_docids)]
+
+        processed_docids = self._already_processed_docids()
+        
+        skipping_ids = input_df["docid"].nunique()
+        input_df = input_df[~input_df["docid"].isin(processed_docids)]
+        skipping_ids -= input_df["docid"].nunique()
 
         print(
             f"Processing {len(input_df)} documents (skipping {skipping_ids}). Minimum ID: {input_df['docid'].min()}, maximum ID: {input_df['docid'].max()}"
@@ -234,7 +189,6 @@ class Doc2Query:
             queries = self._doc2query(docs)
             new_queries: List[Tuple[str, List[str]]] = list(zip(docids, queries))
             self.add_new_queries(new_queries)
-            self.write_output()
 
     def _doc2query(self, texts: List[str]) -> List[List[str]]:
         """
@@ -271,6 +225,39 @@ class Doc2Query:
         rtr = [gens for gens in chunked(outputs, self.num_samples)]
         return rtr
 
+    def sort_output_file(self):
+        """Sort the output file by docid."""
+        if not self.output_file.exists():
+            print("Output file does not exist.")
+            return
+
+        df = pd.read_table(self.output_file, names=["docid"] + [f"query_{i}" for i in range(self.num_samples)], header=None)
+        df = df.sort_values(by="docid")
+        df.to_csv(self.output_file, sep="\t", index=False, header=False)
+
+    def verify_output(self):
+        """Check if all docids from the input_file have queries in the output_file."""
+        # Check if output file exists
+        if not self.output_file.exists():
+            print("Output file does not exist. Verification failed!")
+            return
+
+        input_df = pd.read_table(self.input_file, names=["docid", "document"], header=None)
+        output_df = pd.read_table(self.output_file, names=["docid"] + [f"query_{i}" for i in range(self.num_samples)], header=None)
+        
+        input_docids = set(input_df["docid"].values)
+        output_docids = set(output_df["docid"].values)
+
+        missing_docids = input_docids - output_docids
+
+        if not missing_docids:
+            print("All docids from input_file have corresponding queries in the output_file.")
+        else:
+            print(f"Missing queries for {len(missing_docids)} docids in the output_file.")
+            print("Some of the missing docids are:", list(missing_docids)[:10])
 
 if __name__ == "__main__":
-    Doc2Query().generate_queries()
+    d2q = Doc2Query()
+    d2q.generate_queries()
+    d2q.sort_output_file()
+    d2q.verify_output()
