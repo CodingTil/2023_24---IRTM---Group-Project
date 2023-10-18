@@ -1,6 +1,7 @@
 from typing import List, Tuple, Dict, Set
 import re
 from pathlib import Path
+from multiprocessing import Process, Queue
 
 from tqdm import tqdm
 import torch
@@ -17,6 +18,44 @@ NUM_SAMPLES: int = 3
 
 INPUT_FILE: Path = Path("data/collection.tsv")
 OUTPUT_FILE: Path = Path("data/doc2query.tsv")
+
+
+def batched_writer(queue: Queue, output_file: Path, num_samples: int):
+    while True:
+        items_to_write = []
+
+        # Wait till told to capture new queries
+        item = queue.get()
+        if item == "STOP":
+            break
+
+        # Append the first item
+        items_to_write.append(item)
+
+        # Now, try to get other items without blocking if the queue is empty
+        break_after = False
+        while not queue.empty():
+            item = queue.get_nowait()
+            if item == "STOP":
+                break_after = True
+                break
+            items_to_write.append(item)
+
+        # Write all collected items to the output file
+        new_data = {
+            "docid": [docid for docid, _ in items_to_write],
+        }
+
+        for i in range(num_samples):
+            new_data[f"query_{i}"] = [
+                queries[i] if i < len(queries) else "" for _, queries in items_to_write
+            ]
+
+        df = pd.DataFrame(new_data)
+        df.to_csv(output_file, mode="a", sep="\t", index=False, header=False)
+
+        if break_after:
+            break
 
 
 class Doc2Query:
@@ -45,6 +84,10 @@ class Doc2Query:
         The output dataframe
     pattern : re.Pattern
         The pattern to remove URLs from the input
+    write_queue : Queue
+        The queue to write to
+    writer_process : Process
+        The process to write to the output file
     """
 
     model: T5ForConditionalGeneration
@@ -56,6 +99,8 @@ class Doc2Query:
     input_file: Path
     output_file: Path
     pattern: re.Pattern
+    write_queue: Queue
+    writer_process: Process
 
     def __init__(
         self,
@@ -105,6 +150,12 @@ class Doc2Query:
         assert input_file.exists()
         self.input_file = input_file
         self.pattern = re.compile("^\\s*http\\S+")
+        self.write_queue = Queue()
+        self.writer_process = Process(
+            target=batched_writer,
+            args=(self.write_queue, self.output_file, self.num_samples),
+        )
+        self.writer_process.start()
 
     def add_new_queries(self, new_queries: List[Tuple[str, List[str]]]):
         """
@@ -115,24 +166,8 @@ class Doc2Query:
         new_queries : List[Tuple[str, List[str]]]
             The new queries to add: (docid, queries)
         """
-        new_data: Dict[str, List[str]] = {
-            "docid": [],
-            "query_0": [],
-            "query_1": [],
-            "query_2": [],
-        }
-
         for docid, queries in new_queries:
-            assert 1 <= len(queries) <= self.num_samples
-            new_data["docid"].append(docid)
-            for i, query in enumerate(queries):
-                new_data[f"query_{i}"].append(query)
-
-        self.write_output(new_data)
-
-    def write_output(self, new_data: Dict[str, List[str]]):
-        df = pd.DataFrame(new_data)
-        df.to_csv(self.output_file, mode="a", sep="\t", index=False, header=False)
+            self.write_queue.put((docid, queries))
 
     def _already_processed_docids(self) -> Set[int]:
         """Get set of docids that have already been processed."""
@@ -152,7 +187,7 @@ class Doc2Query:
         )
 
         processed_docids = self._already_processed_docids()
-        
+
         skipping_ids = input_df["docid"].nunique()
         input_df = input_df[~input_df["docid"].isin(processed_docids)]
         skipping_ids -= input_df["docid"].nunique()
@@ -189,6 +224,11 @@ class Doc2Query:
             queries = self._doc2query(docs)
             new_queries: List[Tuple[str, List[str]]] = list(zip(docids, queries))
             self.add_new_queries(new_queries)
+        self.write_queue.put("STOP")
+
+    def __del__(self):
+        self.write_queue.put("STOP")
+        self.writer_process.join()
 
     def _doc2query(self, texts: List[str]) -> List[List[str]]:
         """
@@ -231,7 +271,11 @@ class Doc2Query:
             print("Output file does not exist.")
             return
 
-        df = pd.read_table(self.output_file, names=["docid"] + [f"query_{i}" for i in range(self.num_samples)], header=None)
+        df = pd.read_table(
+            self.output_file,
+            names=["docid"] + [f"query_{i}" for i in range(self.num_samples)],
+            header=None,
+        )
         df = df.sort_values(by="docid")
         df.to_csv(self.output_file, sep="\t", index=False, header=False)
 
@@ -242,19 +286,30 @@ class Doc2Query:
             print("Output file does not exist. Verification failed!")
             return
 
-        input_df = pd.read_table(self.input_file, names=["docid", "document"], header=None)
-        output_df = pd.read_table(self.output_file, names=["docid"] + [f"query_{i}" for i in range(self.num_samples)], header=None)
-        
+        input_df = pd.read_table(
+            self.input_file, names=["docid", "document"], header=None
+        )
+        output_df = pd.read_table(
+            self.output_file,
+            names=["docid"] + [f"query_{i}" for i in range(self.num_samples)],
+            header=None,
+        )
+
         input_docids = set(input_df["docid"].values)
         output_docids = set(output_df["docid"].values)
 
         missing_docids = input_docids - output_docids
 
         if not missing_docids:
-            print("All docids from input_file have corresponding queries in the output_file.")
+            print(
+                "All docids from input_file have corresponding queries in the output_file."
+            )
         else:
-            print(f"Missing queries for {len(missing_docids)} docids in the output_file.")
+            print(
+                f"Missing queries for {len(missing_docids)} docids in the output_file."
+            )
             print("Some of the missing docids are:", list(missing_docids)[:10])
+
 
 if __name__ == "__main__":
     d2q = Doc2Query()
