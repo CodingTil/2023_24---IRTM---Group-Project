@@ -173,7 +173,16 @@ Henceforth, we'll label this integrated retrieval approach as "baseline + \textt
 \end{enumerate}
 
 \section{Document Expansion Method}\label{sec:doc2query-method}
-JUST IDEA
+
+To improve the results of our baseline system, we made the decision to integrate a document expansion mechanism, and after careful consideration, our choice landed on "Doc2Query - T5." This approach combines the power of document expansion with the capabilities of the T5 sequence-to-sequence model to enhance the efficiency of our information retrieval system.
+
+The core idea behind the "Doc2Query - T5" model is to dynamically generate specific questions or queries that are closely related to the content of a given document. These generated questions are then seamlessly incorporated into the document. The goal of this process is to expand the document's content, thereby providing additional information that can significantly improve the effectiveness of our information retrieval system.
+
+In a broader sense, this approach falls under the umbrella of pseudo-relevance feedback (PRF), where the search engine aims to refine and enhance the original user query by leveraging information retrieved from the initial search results. By generating relevant queries based on the document's content, we are essentially expanding the scope of potential search terms, enabling our system to better capture the user's intent and find more relevant documents.
+
+The integration of the T5 model allows us to transform the document into highly relevant queries tailored to the content of the document. This is achieved by fine-tuning the T5 model, which is trained to understand the contextual relationships within the document and generate queries that effectively summarise the key points of the document.
+
+The use of "Doc2Query - T5" will be added to our baseline, which will remain unchanged. The system architecture will therefore take the following form: 
 \begin{enumerate}
 	\setcounter{enumi}{-1}
 	\item	\texttt{doc2query-T5} Document Expansion
@@ -187,7 +196,14 @@ JUST IDEA
 \end{enumerate}
 
 \section{Extending the Document Expansion Method with Pseudo-Relevance Feedback}\label{sec:doc2query-method+rm3}
-JUST IDEA
+
+The combined "Doc2Query-T5 + RM3" approach represents a powerful paradigm shift in information retrieval. 
+
+By seamlessly integrating document expansion through "Doc2Query-T5" and the established pseudo-relevance feedback method "RM3", we are able to improve our search capabilities in a number of ways. 
+
+This advanced architecture allows us to create more contextually relevant queries, starting with the generation of document-specific questions and refining user queries using T5. The subsequent search phase, guided by BM25, reduces the number of candidate documents. "RM3 then uses these candidates to create additional queries, thereby broadening the search field. 
+
+In a final round of searching using BM25, we broaden the set of documents. To further improve the quality of the results, our "monoT5" and "duoT5" re-ranking steps ensure that the most relevant documents come out on top. This approach offers a holistic solution that not only improves accuracy but also explores a wider range of potentially relevant documents, providing users with an improved and efficient information search experience. Ultimately, our architecture is a combination of RM3 and Doc2Query (see sections x and y respectively) and will take the following form: 
 \begin{enumerate}
 	\setcounter{enumi}{-1}
 	\item	\texttt{doc2query-T5} Document Expansion
