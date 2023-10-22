@@ -173,16 +173,13 @@ Henceforth, we'll label this integrated retrieval approach as "baseline + \textt
 \end{enumerate}
 
 \section{Document Expansion Method}\label{sec:doc2query-method}
+To improve the results of our baseline system, we made the decision to integrate a document expansion mechanism, and after careful consideration, our choice landed on \texttt{doc2query-T5}, see Section \ref{sec:doc2query}. This approach combines the power of document expansion with the capabilities of the T5 sequence-to-sequence model to enhance the effectiveness of our information retrieval system.
 
-To improve the results of our baseline system, we made the decision to integrate a document expansion mechanism, and after careful consideration, our choice landed on "Doc2Query - T5." This approach combines the power of document expansion with the capabilities of the T5 sequence-to-sequence model to enhance the efficiency of our information retrieval system.
+The core idea behind the \texttt{doc2query-T5} model is to dynamically generate specific questions or queries that are closely related to the content of a given document. These generated questions are then seamlessly incorporated into the document. The goal of this process is to expand the document's content, thereby providing additional information that can significantly improve the effectiveness of our information retrieval system. By generating relevant queries based on the document's content, we are essentially expanding the scope of potential search terms, enabling our system to better capture the user's intent and find more relevant documents.
 
-The core idea behind the "Doc2Query - T5" model is to dynamically generate specific questions or queries that are closely related to the content of a given document. These generated questions are then seamlessly incorporated into the document. The goal of this process is to expand the document's content, thereby providing additional information that can significantly improve the effectiveness of our information retrieval system.
+The integration of the \texttt{T5} model allows us to transform the document into highly relevant queries tailored to the content of the document. This is achieved by utilizing a \texttt{T5} model fine-tuned on this task of understanding the contextual relationships within the document and generate queries that effectively summarize the key points of the document.
 
-In a broader sense, this approach falls under the umbrella of pseudo-relevance feedback (PRF), where the search engine aims to refine and enhance the original user query by leveraging information retrieved from the initial search results. By generating relevant queries based on the document's content, we are essentially expanding the scope of potential search terms, enabling our system to better capture the user's intent and find more relevant documents.
-
-The integration of the T5 model allows us to transform the document into highly relevant queries tailored to the content of the document. This is achieved by fine-tuning the T5 model, which is trained to understand the contextual relationships within the document and generate queries that effectively summarise the key points of the document.
-
-The use of "Doc2Query - T5" will be added to our baseline, which will remain unchanged. The system architecture will therefore take the following form: 
+The use of \texttt{doc2query-T5} will be added to our baseline, which will otherwise remain unchanged. In particular, \texttt{doc2query-T5} can be seen as a preprocessing step to indexing, where first $m$ queries can be generated for each document in the collection, which then will be appended to the original document to form the input for the indexing stage. The system architecture for this pipeline, which we will refer to as "\texttt{doc2query-T5}", will therefore take the following form:
 \begin{enumerate}
 	\setcounter{enumi}{-1}
 	\item	\texttt{doc2query-T5} Document Expansion
@@ -196,14 +193,9 @@ The use of "Doc2Query - T5" will be added to our baseline, which will remain unc
 \end{enumerate}
 
 \section{Extending the Document Expansion Method with Pseudo-Relevance Feedback}\label{sec:doc2query-method+rm3}
+The combined "\texttt{doc2query-T5} + \texttt{RM3}" approach represents a powerful paradigm shift in information retrieval. By seamlessly integrating document expansion through \texttt{doc2query-T5} and the established pseudo-relevance feedback method \texttt{RM3}, we are able to improve our search capabilities in a number of ways.
 
-The combined "Doc2Query-T5 + RM3" approach represents a powerful paradigm shift in information retrieval. 
-
-By seamlessly integrating document expansion through "Doc2Query-T5" and the established pseudo-relevance feedback method "RM3", we are able to improve our search capabilities in a number of ways. 
-
-This advanced architecture allows us to create more contextually relevant queries, starting with the generation of document-specific questions and refining user queries using T5. The subsequent search phase, guided by BM25, reduces the number of candidate documents. "RM3 then uses these candidates to create additional queries, thereby broadening the search field. 
-
-In a final round of searching using BM25, we broaden the set of documents. To further improve the quality of the results, our "monoT5" and "duoT5" re-ranking steps ensure that the most relevant documents come out on top. This approach offers a holistic solution that not only improves accuracy but also explores a wider range of potentially relevant documents, providing users with an improved and efficient information search experience. Ultimately, our architecture is a combination of RM3 and Doc2Query (see sections x and y respectively) and will take the following form: 
+This advanced retrieval method allows us to create more contextually relevant queries, starting with the generation of document-specific questions and refining user queries using \texttt{T5}. The subsequent search phase, guided by \texttt{BM25}, reduces the number of candidate documents. \texttt{RM3} then uses these candidates to create additional queries, thereby broadening the search field. In a final round of searching using \texttt{BM25}, we broaden the set of documents. To further improve the quality of the results, our \texttt{monoT5} and \texttt{duoT5} re-ranking steps ensure that the most relevant documents come out on top. This approach offers a holistic solution that not only improves accuracy but also explores a wider range of potentially relevant documents, providing users with an improved and efficient information search experience. Ultimately, our architecture is a combination of \texttt{RM3} and \texttt{doc2query-T5}, see Section \ref{sec:related}, and will take the following form:
 \begin{enumerate}
 	\setcounter{enumi}{-1}
 	\item	\texttt{doc2query-T5} Document Expansion
@@ -217,9 +209,6 @@ In a final round of searching using BM25, we broaden the set of documents. To fu
 				\item	Top-document re-ranking using \texttt{duoT5}
 			\end{enumerate}
 \end{enumerate}
-
-\section{Advanced Method}\label{sec:advanced}
-Explain what you are taking as your advanced method(s), as well as why this is a promising attempt to outperform the baseline method, and why you are making specific implementation choices.
 
 \section{Results}\label{sec:results}
 The individual methods were evaluated on the MS MARCO document collection and the following provided files: \texttt{queries\-\_\-train\-.csv}, comprising of a list of queries grouped together into several conversation sessions, and \texttt{qrels\-\_\-train\-.txt} that contains the relevance assessments for the training queries. Our evaluation focused on a suite of metrics:
