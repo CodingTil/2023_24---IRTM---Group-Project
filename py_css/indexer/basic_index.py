@@ -8,7 +8,7 @@ import pyterrier as pt
 
 # Paths for data and index
 DATA_PATH = resource_filename(__name__, "../../data/collection.tsv")
-INDEX_PATH = resource_filename(__name__, "../../data/index")
+INDEX_PATH = resource_filename(__name__, "../../data/basic_index")
 
 
 def get_index(*, recreate: bool = False):

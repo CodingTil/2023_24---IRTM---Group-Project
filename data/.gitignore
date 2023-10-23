@@ -1,3 +1,5 @@
 collection.tsv
 doc2query.tsv
-index/
+basic_index/
+doc2query_index/
+

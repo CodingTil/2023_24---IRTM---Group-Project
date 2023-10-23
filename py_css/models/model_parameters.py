@@ -4,15 +4,37 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Tuple
 
+import indexer.basic_index as basic_index_module
+import indexer.doc2query_index as doc2query_index_module
+
 import models.base as base_model
 import models.baseline as baseline_model
 import models.baseline_prf as baseline_prf_model
+import models.doc2query as doc2query_model
+import models.doc2query_prf as doc2query_prf_model
 
 
 class ParametersBase(ABC):
     """
     An abstract class to represent the parameters of a model.
     """
+
+    @abstractmethod
+    def create_Index(self, recreate: bool):
+        """
+        Creates a PyTerrier Index.
+
+        Parameters
+        ----------
+        recreate : bool
+            Whether to recreate the index.
+
+        Returns
+        -------
+        pt.Index
+            The PyTerrier Index.
+        """
+        ...
 
     @abstractmethod
     def create_Pipeline(self, index) -> base_model.Pipeline:
@@ -68,6 +90,22 @@ class BaselineParameters(ParametersBase):
     bm_25_docs: int
     mono_t5_docs: int
     duo_t5_docs: int
+
+    def create_Index(self, recreate: bool):
+        """
+        Creates a PyTerrier Index.
+
+        Parameters
+        ----------
+        recreate : bool
+            Whether to recreate the index.
+
+        Returns
+        -------
+        pt.Index
+            The PyTerrier Index.
+        """
+        return basic_index_module.get_index(recreate=recreate)
 
     def create_Pipeline(self, index) -> base_model.Pipeline:
         """
@@ -142,6 +180,22 @@ class BaselinePRFParameters(ParametersBase):
     mono_t5_docs: int
     duo_t5_docs: int
 
+    def create_Index(self, recreate: bool):
+        """
+        Creates a PyTerrier Index.
+
+        Parameters
+        ----------
+        recreate : bool
+            Whether to recreate the index.
+
+        Returns
+        -------
+        pt.Index
+            The PyTerrier Index.
+        """
+        return basic_index_module.get_index(recreate=recreate)
+
     def create_Pipeline(self, index) -> base_model.Pipeline:
         """
         Creates the baseline + PRF pipeline with the given index.
@@ -154,7 +208,7 @@ class BaselinePRFParameters(ParametersBase):
         Returns
         -------
         base_model.Pipeline (baseline_prf_model.BaselinePRF)
-            The baseline pipeline.
+            The baseline_prf pipeline.
         """
         return baseline_prf_model.BaselinePRF(
             index,
@@ -177,7 +231,7 @@ class BaselinePRFParameters(ParametersBase):
 
         Returns
         -------
-        ParametersBase (BaselineParameters)
+        ParametersBase (BaselinePRFParameters)
             The ParametersBase object.
 
         Raises
@@ -190,3 +244,177 @@ class BaselinePRFParameters(ParametersBase):
             assert isinstance(i, int), "All parameters must be integers."
             assert i > 0, "All parameters must be positive integers."
         return BaselinePRFParameters(tup[0], tup[1], tup[2], tup[3], tup[4])
+
+
+@dataclass
+class Doc2QueryParameters(ParametersBase):
+    """
+    A class to represent the parameters of the doc2query retrieval method.
+
+    Attributes
+    ----------
+    bm25_docs : int
+        The number of documents to retrieve with BM25.
+    mono_t5_docs : int
+        The number of documents to rerank with MonoT5.
+    duo_t5_docs : int
+        The number of documents to rerank with DuoT5.
+    """
+
+    bm_25_docs: int
+    mono_t5_docs: int
+    duo_t5_docs: int
+
+    def create_Index(self, recreate: bool):
+        """
+        Creates a PyTerrier Index.
+
+        Parameters
+        ----------
+        recreate : bool
+            Whether to recreate the index.
+
+        Returns
+        -------
+        pt.Index
+            The PyTerrier Index.
+        """
+        return doc2query_index_module.get_index(recreate=recreate)
+
+    def create_Pipeline(self, index) -> base_model.Pipeline:
+        """
+        Creates the baseline pipeline with the given index.
+
+        Parameters
+        ----------
+        index : pt.Index
+            The PyTerrier index.
+
+        Returns
+        -------
+        base_model.Pipeline (baseline_model.Doc2Query)
+            The doc2query pipeline.
+        """
+        return doc2query_model.Doc2Query(
+            index,
+            bm25_docs=self.bm_25_docs,
+            mono_t5_docs=self.mono_t5_docs,
+            duo_t5_docs=self.duo_t5_docs,
+        )
+
+    @staticmethod
+    def from_tuple(tup: Tuple) -> ParametersBase:
+        """
+        Creates a BaselineParameters object from a tuple.
+
+        Parameters
+        ----------
+        tup : Tuple[int, int, int]
+            The tuple (bm25_docs, mono_t5_docs, duo_t5_docs)
+
+        Returns
+        -------
+        ParametersBase (Doc2QueryParameters)
+            The ParametersBase object.
+
+        Raises
+        ------
+        AssertionError
+            If the tuple does not have 3 elements or if any of the elements is not a positive integer.
+        """
+        assert len(tup) == 3, "The tuple must have 3 elements."
+        for i in tup:
+            assert isinstance(i, int), "All parameters must be integers."
+            assert i > 0, "All parameters must be positive integers."
+        return Doc2QueryParameters(tup[0], tup[1], tup[2])
+
+
+@dataclass
+class Doc2QueryPRFParameters(ParametersBase):
+    """
+    A class to represent the parameters of the method extending the doc2query retrieval method with PRF.
+
+    Attributes
+    ----------
+    bm25_docs : int
+        The number of documents to retrieve with BM25.
+    rm3_fb_docs : int
+        The number of documents used for RM3 feedback.
+    rm3_fb_terms : int
+        The number of terms generated by RM3 feedback.
+    mono_t5_docs : int
+        The number of documents to rerank with MonoT5.
+    duo_t5_docs : int
+        The number of documents to rerank with DuoT5.
+    """
+
+    bm_25_docs: int
+    rm3_fb_docs: int
+    rm3_fb_terms: int
+    mono_t5_docs: int
+    duo_t5_docs: int
+
+    def create_Index(self, recreate: bool):
+        """
+        Creates a PyTerrier Index.
+
+        Parameters
+        ----------
+        recreate : bool
+            Whether to recreate the index.
+
+        Returns
+        -------
+        pt.Index
+            The PyTerrier Index.
+        """
+        return doc2query_index_module.get_index(recreate=recreate)
+
+    def create_Pipeline(self, index) -> base_model.Pipeline:
+        """
+        Creates the baseline + PRF pipeline with the given index.
+
+        Parameters
+        ----------
+        index : pt.Index
+            The PyTerrier index.
+
+        Returns
+        -------
+        base_model.Pipeline (baseline_prf_model.Doc2QueryPRF)
+            The doc2query_prf pipeline.
+        """
+        return doc2query_prf_model.Doc2QueryPRF(
+            index,
+            bm25_docs=self.bm_25_docs,
+            rm3_fb_docs=self.rm3_fb_docs,
+            rm3_fb_terms=self.rm3_fb_terms,
+            mono_t5_docs=self.mono_t5_docs,
+            duo_t5_docs=self.duo_t5_docs,
+        )
+
+    @staticmethod
+    def from_tuple(tup: Tuple) -> ParametersBase:
+        """
+        Creates a BaselineParameters object from a tuple.
+
+        Parameters
+        ----------
+        tup : Tuple[int, int, int]
+            The tuple (bm25_docs, rm3_fb_docs, rm3_fb_terms, mono_t5_docs, duo_t5_docs)
+
+        Returns
+        -------
+        ParametersBase (Doc2QueryPRFParameters)
+            The ParametersBase object.
+
+        Raises
+        ------
+        AssertionError
+            If the tuple does not have 5 elements or if any of the elements is not a positive integer.
+        """
+        assert len(tup) == 5, "The tuple must have 5 elements."
+        for i in tup:
+            assert isinstance(i, int), "All parameters must be integers."
+            assert i > 0, "All parameters must be positive integers."
+        return Doc2QueryPRFParameters(tup[0], tup[1], tup[2], tup[3], tup[4])

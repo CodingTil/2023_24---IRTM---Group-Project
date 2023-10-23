@@ -44,7 +44,7 @@ def main():
     global_args.add_argument(
         "--method",
         type=str,
-        choices=["baseline", "baseline-prf"],
+        choices=["baseline", "baseline-prf", "doc2query", "doc2query-prf"],
         default="baseline",
         help="Set the retrieval method",
     )
@@ -60,7 +60,21 @@ def main():
         "--baseline-prf-params",
         type=lambda s: tuple(map(int, s.split(","))),
         default=(1000, 17, 26, 100, 10),
-        help="Parameters for baseline method as tuple (bm25_docs, rm3_fb_docs, rm3_fb_terms, mono_t5_docs, duo_t5_docs)",
+        help="Parameters for baseline_prf method as tuple (bm25_docs, rm3_fb_docs, rm3_fb_terms, mono_t5_docs, duo_t5_docs)",
+    )
+
+    global_args.add_argument(
+        "--doc2query-params",
+        type=lambda s: tuple(map(int, s.split(","))),
+        default=(1000, 100, 10),
+        help="Parameters for doc2query method as tuple (bm25_docs, mono_t5_docs, duo_t5_docs)",
+    )
+
+    global_args.add_argument(
+        "--doc2query-prf-params",
+        type=lambda s: tuple(map(int, s.split(","))),
+        default=(1000, 17, 26, 100, 10),
+        help="Parameters for doc2query_prf method as tuple (bm25_docs, rm3_fb_docs, rm3_fb_terms, mono_t5_docs, duo_t5_docs)",
     )
 
     # Command argument
@@ -119,6 +133,16 @@ def main():
         case "baseline-prf":
             model_parameters = model_parameters_module.BaselinePRFParameters.from_tuple(
                 args.baseline_prf_params
+            )
+        case "doc2query":
+            model_parameters = model_parameters_module.Doc2QueryParameters.from_tuple(
+                args.doc2query_params
+            )
+        case "doc2query-prf":
+            model_parameters = (
+                model_parameters_module.Doc2QueryPRFParameters.from_tuple(
+                    args.doc2query_prf_params
+                )
             )
         case _:
             raise NotImplementedError

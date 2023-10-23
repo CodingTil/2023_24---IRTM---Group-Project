@@ -4,7 +4,6 @@ from rich.prompt import Prompt
 from rich.style import Style
 from rich.console import Console
 
-import indexer.index as index_module
 import models.base as base_module
 import models.model_parameters as model_parameters_module
 
@@ -83,7 +82,7 @@ def main(
     global index
     global pipeline
 
-    index = index_module.get_index(recreate=recreate)
+    index = model_parameters.create_Index(recreate=recreate)
     pipeline = model_parameters.create_Pipeline(index=index)
 
     # Initialize the rich console

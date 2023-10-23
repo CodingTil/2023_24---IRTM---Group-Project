@@ -4,7 +4,6 @@ import csv
 import tempfile
 import subprocess
 
-import indexer.index as index_module
 import models.base as base_model
 import models.model_parameters as model_parameters_module
 import interface.run_queries as run_queries_module
@@ -37,7 +36,7 @@ def main(
     global index
     global pipeline
 
-    index = index_module.get_index(recreate=recreate)
+    index = model_parameters.create_Index(recreate=recreate)
     pipeline = model_parameters.create_Pipeline(index=index)
 
     logging.info("Loading queries...")
