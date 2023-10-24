@@ -178,7 +178,7 @@ The core idea behind the \texttt{doc2query-T5} model is to dynamically generate 
 
 The integration of the \texttt{T5} model allows us to transform the document into highly relevant queries tailored to the content of the document. This is achieved by utilizing a \texttt{T5} model fine-tuned on this task of understanding the contextual relationships within the document and generate queries that effectively summarize the key points of the document. In particular, we use the \texttt{castorini\-/doc2query\--t5\--large\--msmarco}\footnote{https://huggingface.co/castorini/doc2query-t5-large-msmarco} model.
 
-The use of \texttt{doc2query-T5} will be added to our baseline, which will otherwise remain unchanged. In particular, \texttt{doc2query-T5} can be seen as a preprocessing step to indexing, where first $m$ queries can be generated for each document in the collection, which then will be appended to the original document to form the input for the indexing stage. The system architecture for this pipeline, which we will refer to as "\texttt{doc2query-T5}", will therefore take the following form:
+The use of \texttt{doc2query-T5} will be added to our baseline, which will otherwise remain unchanged. In particular, \texttt{doc2query-T5} can be seen as a preprocessing step to indexing, where first $m$ queries can be generated for each document in the collection, which then will be appended to the original document to form the input for the indexing stage. The system architecture for this pipeline, which we will refer to as "\texttt{doc2query}", will therefore take the following form:
 \begin{enumerate}
 	\setcounter{enumi}{-1}
 	\item	\texttt{doc2query-T5} Document Expansion
@@ -192,7 +192,7 @@ The use of \texttt{doc2query-T5} will be added to our baseline, which will other
 \end{enumerate}
 
 \section{Extending the Document Expansion Method with Pseudo-Relevance Feedback}\label{sec:doc2query-method+rm3}
-The combined "\texttt{doc2query-T5} + \texttt{RM3}" approach represents a powerful paradigm shift in information retrieval. By seamlessly integrating document expansion through \texttt{doc2query-T5} and the established pseudo-relevance feedback method \texttt{RM3}, we are able to improve our search capabilities in a number of ways.
+The combined "\texttt{doc2query} + \texttt{RM3}" approach represents a powerful paradigm shift in information retrieval. By seamlessly integrating document expansion through \texttt{doc2query-T5} and the established pseudo-relevance feedback method \texttt{RM3}, we are able to improve our search capabilities in a number of ways.
 
 This advanced retrieval method allows us to create more contextually relevant queries, starting with the generation of document-specific questions and refining user queries using \texttt{T5}. The subsequent search phase, guided by \texttt{BM25}, reduces the number of candidate documents. \texttt{RM3} then uses these candidates to create additional queries, thereby broadening the search field. In a final round of searching using \texttt{BM25}, we broaden the set of documents. To further improve the quality of the results, our \texttt{monoT5} and \texttt{duoT5} re-ranking steps ensure that the most relevant documents come out on top. This approach offers a holistic solution that not only improves accuracy but also explores a wider range of potentially relevant documents, providing users with an improved and efficient information search experience. Ultimately, our architecture is a combination of \texttt{RM3} and \texttt{doc2query-T5}, see Section \ref{sec:related}, and will take the following form:
 \begin{enumerate}
@@ -226,7 +226,11 @@ trec_eval -c -m recall.1000 -m map -m recip_rank
 
 As stated in Section \ref{sec:baseline}, the baseline method can be parameterized in a few different ways. For this evaluation, we utilized the following configurations: The document retrieval (\texttt{BM25}) used the default parameters from \texttt{pyterrier}\footnote{URL: \url{https://pyterrier.readthedocs.io/en/latest/terrier-retrieval.html}} to retrieve the 1000 most-relevant documents for each query. All 1000 documents were then reranked using the \texttt{monoT5} reranker. Because of the high computational cost of the \texttt{duoT5} reranker, only of those 1000 documents the best 50 documents were then reordered using this reranker.
 
-For the extension of the baseline, the baseline + \texttt{RM3} method, we utilized the same configuration for these components. The \texttt{RM3} query expansion component was parameterized to expand the query by 26 terms, using the top 17 documents retrieved by the initial \texttt{BM25} retrieval.
+For the extension of the baseline, the baseline + \texttt{RM3} method, we utilized the same configuration for these components. The \texttt{RM3} query expansion component was parameterized to expand the query by 26 terms, using the top 17 documents retrieved by the initial \texttt{BM25} search.
+
+The \texttt{doc2query} and \texttt{doc2query} + \texttt{RM3} strategies built upon the baseline and baseline + \texttt{RM3} designs. The distinction is in the initial indexing stage (refer to Sections \ref{sec:doc2query-method} and \ref{sec:doc2query-method+rm3}). Keeping everything else constant for a fair comparison, the indexing stage was adjusted to generate 3 descriptive queries for each document. The subsequent documents incorporated these queries before indexing.
+
+We ran our evaluations on a Google Cloud Compute Instance, powered by a single Nvidia L4 GPU. All retrieval pipelines exhibited similar retrieval times.
 
 \begin{table}[h]
 \begin{center}
@@ -246,11 +250,21 @@ For the extension of the baseline, the baseline + \texttt{RM3} method, we utiliz
 
 As can be seen in table \ref{table:1}, our baseline method is at least as efficient as the reference system provided by the project owners. Thus, our baseline method fulfills the hard requirement of the project.
 
-Furthermore, comparing the results of the baseline with those of the baseline + \texttt{RM3} approach, one can see that simply by adding the query expansion component into the retrieval pipeline one can improve the quality of the ranked list of documents across all measured metrics.
+Furthermore, comparing the results of the baseline with those of the baseline + \texttt{RM3} approach, one can see that simply by adding the query expansion component into the retrieval pipeline one can improve the quality of the ranked list of documents across all measured metrics. Similarly, the \texttt{doc2query} method improves the baseline, with the benefits roughly matching the baseline + \texttt{RM3} approach.
+
+One might expect the \texttt{doc2query} + \texttt{RM3} combination to significantly improve upon the other methods. Yet, it only marginally surpassed them in 3 of the 4 metrics and trailed in the mean reciprocal rank by both baseline + \texttt{RM3} and \texttt{doc2query}.
+
+Finally, a glance at index generation: Indexing the 8.8 million documents of MS MARCO was a breeze for the baseline methods, finishing in under an hour. However, \texttt{doc2query} required about six continuous days to generate descriptive queries. After this, indexing was once again swift, under an hour. Both indices store the original document content as required for query rewriting, see Section \ref{sec:cqr}. The baseline approaches generated a $4.2$GB index, whereas the additional terms produced by \texttt{doc2query} expanded it slightly to $4.5$GB. In theory, retrieving from the bigger index should be slower, but we didn't observe significant differences.
 
 \section{Discussion and Conclusions}
+This study introduced and analyzed four conversational retrieval strategies for the MS MARCO document collection. Drawing inspiration from the baseline approach by Łajewska et al. \cite{Lajewska:2023:ECIR}, our baseline method demonstrated comparable, if not superior, efficiency to the reference system presented by the project curators.
 
-Summarize and discuss different challenges you faced and how you solved those. Include interpretations of the key facts and trends you observed and pointed out in the Results Section. Which method performed best, and why? Speculate: What could you have done differently, and what consequences would that have had?
+Our findings further highlight the advantages of extending the baseline approach. Incorporating either a query expansion or a document expansion mechanism significantly enhances the quality of document rankings across all evaluated metrics. Interestingly, combining both the query and document expansion elements didn't consistently yield expected improvements. One plausible explanation centers on our initial sparse retrieval stage, that is \texttt{BM25}. From a semantic viewpoint, this stage may be insufficient in recognizing relevant documents that possess syntactic deviations from the query. Hence, even with the aid from \texttt{doc2query} and \texttt{RM3}, there's potential room for missing pertinent documents.
+
+If our theory holds, introducing a dense retrieval technique, like \texttt{ANCE}, see Section \ref{sec:ance}, might bridge this semantic gap, refining the precision of document rankings. Additionally, it's worth exploring the reason behind the performance dip of the \texttt{doc2query} + \texttt{RM3} strategy in the mean reciprocal rank metric, especially when compared against the results from the baseline + \texttt{RM3} and sole \texttt{doc2query} methods.
+
+In conclusion, while infusing both query and document expansion strategies substantially boosts retrieval quality, the benefits aren't without implications. The bright side is that these enhancements introduce insignificant extra computational costs during retrieval, showcasing a practical approach for improving conversational retrieval systems.
+
 
 %%
 %% If your work has an appendix, this is the place to put it.
