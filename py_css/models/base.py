@@ -208,6 +208,19 @@ class Pipeline(ABC):
                     for doc in docs:
                         if doc.docno != EMPTY_PLACEHOLDER_DOC.docno:
                             yield doc
+            i: int = 1
+            while True:
+                yield Document(f"{i}", "")
+                i += 1
+
+        # if in df there are multiple rows that have the same qid and docno, keep the one with the highest score. For the ones removed, add a row each with the EMPTY_PLACEHOLDER_DOC
+        rank_size_per_qid: int = df.groupby("qid").size().max()
+        df = df.sort_values(["qid", "docno", "score"], ascending=[True, True, False])
+        df = df.drop_duplicates(subset=["qid", "docno"], keep="first")
+        df = df.reset_index(drop=True)
+        df = self.pad_empty_documents(
+            df, df["qid"].unique(), rank_size_per_qid, df[["qid", "query"]]
+        )
 
         for query, context in context_list:
             # check if there is a row in the df with "qid" == query.query_id, where "docno" == EMPTY_PLACEHOLDER_DOC.docno
