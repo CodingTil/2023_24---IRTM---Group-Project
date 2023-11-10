@@ -8,6 +8,7 @@
 \usepackage{mathtools}
 \usepackage{hyperref}
 \usepackage[htt]{hyphenat}
+\usepackage[normalem]{ulem}
 
 \begin{document}
 
@@ -237,15 +238,15 @@ We ran our evaluations on a Google Cloud Compute Instance, powered by a single N
 
 \begin{table}[h]
 \begin{center}
-	\caption{Performance of the different methods on the MS MARCO document collection.}
+	\caption{Performance of the different methods on the MS MARCO document collection. Best results are in bold, second-best results are underlined.}
 	\begin{tabular}{l|rrrr}
 			& MAP & MRR & R@1000 & NDCG\_Cut@3 \\
 		\hline
 		Reference System & 0.07 &  &  & 0.09 \\
-		Baseline & $0.1746$ & $0.3230$ & $0.5705$ & $0.2461$ \\
-		Baseline + \texttt{RM3} & $0.2124$ & $\mathbf{0.3600}$ & $0.5710$ & $0.2673$ \\
-		\texttt{doc2query} & $0.2103$ & $0.3581$ & $0.5691$ & $0.2704$ \\
-		\texttt{doc2query} + \texttt{RM3} & $\mathbf{0.2126}$ & 0.3498 & $\mathbf{0.5790}$ & $\mathbf{0.2721}$
+		Baseline & $0.1814$ & $0.3062$ & $0.4945$ & $0.2310$ \\
+		Baseline + \texttt{RM3} & $0.1874$ & $0.3158$ & $\dashuline{0.5054}$ & $\mathbf{0.2518}$ \\
+		\texttt{doc2query} & $\mathbf{0.1971}$ & $\mathbf{0.3281}$ & $\mathbf{0.5393}$ & $\dashuline{0.2517}$ \\
+		\texttt{doc2query} + \texttt{RM3} & $\dashuline{0.1878}$ & $\dashuline{0.3217}$ & $0.4996$ & $0.2421$
 	\end{tabular}
 	\label{table:1}
 \end{center}
@@ -253,9 +254,9 @@ We ran our evaluations on a Google Cloud Compute Instance, powered by a single N
 
 As can be seen in table \ref{table:1}, our baseline method is at least as efficient as the reference system provided by the project owners. Thus, our baseline method fulfills the hard requirement of the project.
 
-Furthermore, comparing the results of the baseline with those of the baseline + \texttt{RM3} approach, one can see that simply by adding the query expansion component into the retrieval pipeline one can improve the quality of the ranked list of documents across all measured metrics. Similarly, the \texttt{doc2query} method improves the baseline, with the benefits roughly matching the baseline + \texttt{RM3} approach.
+Furthermore, comparing the results of the baseline with those of the advanced methods, we can see that the introduction of \texttt{RM3} and \texttt{doc2query} significantly improves the retrieval quality. In particular, the \texttt{doc2query} method achieves the best results in almost all four of the metrics, while the baseline + \texttt{RM3} method just barely surpasses the \texttt{doc2query} approach in the NDCG\_Cut@3 metric.
 
-One might expect the \texttt{doc2query} + \texttt{RM3} combination to significantly improve upon the other methods. Yet, it only marginally surpassed them in 3 of the 4 metrics and trailed in the mean reciprocal rank by both baseline + \texttt{RM3} and \texttt{doc2query}.
+One might expect the \texttt{doc2query} + \texttt{RM3} combination to significantly improve upon the other methods. Yet, the results show that it is more similar to the baseline + \texttt{RM3} method performance-wise, following the superior \texttt{doc2query} approach by quite a margin.
 
 Finally, a glance at index generation: Indexing the 8.8 million documents of MS MARCO was a breeze for the baseline methods, finishing in under an hour. However, \texttt{doc2query} required about six continuous days to generate all descriptive queries. After this, indexing was once again swift, under an hour. Both indices store the original document content as required for query rewriting, see Section \ref{sec:cqr}. The baseline approaches generated a $4.2$GB index, whereas the additional terms produced by \texttt{doc2query} expanded it slightly to $4.5$GB. In theory, retrieving from the bigger index should be slower, but we didn't observe significant differences.
 
