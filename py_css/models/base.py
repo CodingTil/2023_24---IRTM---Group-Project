@@ -208,10 +208,6 @@ class Pipeline(ABC):
                     for doc in docs:
                         if doc.docno != EMPTY_PLACEHOLDER_DOC.docno:
                             yield doc
-            i: int = 1
-            while True:
-                yield Document(f"{i}", "")
-                i += 1
 
         # if in df there are multiple rows that have the same qid and docno, keep the one with the highest score. For the ones removed, add a row each with the EMPTY_PLACEHOLDER_DOC
         rank_size_per_qid: int = df.groupby("qid").size().max()
