@@ -48,6 +48,7 @@ class Baseline(base_module.Pipeline):
         bm25 = pt.BatchRetrieve(index, wmodel="BM25", metadata=["docno", "text"])
         self.top_docs = ((bm25 % bm25_docs).compile(), bm25_docs)
         self.mono_t5 = (MonoT5ReRanker(batch_size=BATCH_SIZE), mono_t5_docs)
+        # self.mono_t5 = (MonoT5ReRanker(batch_size=BATCH_SIZE, model="castorini/monot5-large-msmarco"), mono_t5_docs)
         self.duo_t5 = (DuoT5ReRanker(batch_size=BATCH_SIZE), duo_t5_docs)
 
     def transform_input(

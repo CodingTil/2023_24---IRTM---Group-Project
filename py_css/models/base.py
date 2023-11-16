@@ -211,12 +211,19 @@ class Pipeline(ABC):
 
         # if in df there are multiple rows that have the same qid and docno, keep the one with the highest score. For the ones removed, add a row each with the EMPTY_PLACEHOLDER_DOC
         rank_size_per_qid: int = df.groupby("qid").size().max()
+        print(f"Rank size per qid: {rank_size_per_qid}")
         df = df.sort_values(["qid", "docno", "score"], ascending=[True, True, False])
+        total_size = df.shape[0]
         df = df.drop_duplicates(subset=["qid", "docno"], keep="first")
+        dropped_any: bool = total_size != df.shape[0]
+        print(f"Dropped any: {dropped_any}")
         df = df.reset_index(drop=True)
         df = self.pad_empty_documents(
             df, df["qid"].unique(), rank_size_per_qid, df[["qid", "query"]]
         )
+        print(f"Number of max rank size per qid: {df.groupby('qid').size().max()}")
+        df = df.reset_index(drop=True)
+        df = df.sort_values(["qid", "rank"], ascending=[True, True])
 
         for query, context in context_list:
             # check if there is a row in the df with "qid" == query.query_id, where "docno" == EMPTY_PLACEHOLDER_DOC.docno

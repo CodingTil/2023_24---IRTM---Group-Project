@@ -55,6 +55,7 @@ class BaselinePRF(base_module.Pipeline):
         rm3 = pt.rewrite.RM3(index, fb_docs=rm3_fb_docs, fb_terms=rm3_fb_terms)
         self.top_docs = ((bm25 >> rm3 >> bm25) % bm25_docs, bm25_docs)
         self.mono_t5 = (MonoT5ReRanker(batch_size=BATCH_SIZE), mono_t5_docs)
+        # self.mono_t5 = (MonoT5ReRanker(batch_size=BATCH_SIZE, model="castorini/monot5-large-msmarco"), mono_t5_docs)
         self.duo_t5 = (DuoT5ReRanker(batch_size=BATCH_SIZE), duo_t5_docs)
 
     def transform_input(
