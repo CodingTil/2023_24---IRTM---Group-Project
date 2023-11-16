@@ -206,28 +206,38 @@ class Pipeline(ABC):
             for _, docs in reversed(context):
                 if docs is not None:
                     for doc in docs:
-                        if doc.docno != EMPTY_PLACEHOLDER_DOC.docno:
+                        if (
+                            doc.docno != EMPTY_PLACEHOLDER_DOC.docno
+                            and doc.content != ""
+                        ):
                             yield doc
+            i: int = 1
+            while True:
+                yield Document(f"{i}", "")
+                i += 1
 
         # if in df there are multiple rows that have the same qid and docno, keep the one with the highest score. For the ones removed, add a row each with the EMPTY_PLACEHOLDER_DOC
         rank_size_per_qid: int = df.groupby("qid").size().max()
-        print(f"Rank size per qid: {rank_size_per_qid}")
+        logging.info(f"Rank size per qid: {rank_size_per_qid}")
         df = df.sort_values(["qid", "docno", "score"], ascending=[True, True, False])
         total_size = df.shape[0]
         df = df.drop_duplicates(subset=["qid", "docno"], keep="first")
         dropped_any: bool = total_size != df.shape[0]
-        print(f"Dropped any: {dropped_any}")
+        logging.info(f"Dropped any: {dropped_any}")
         df = df.reset_index(drop=True)
         df = self.pad_empty_documents(
             df, df["qid"].unique(), rank_size_per_qid, df[["qid", "query"]]
         )
-        print(f"Number of max rank size per qid: {df.groupby('qid').size().max()}")
+        logging.info(
+            f"Number of max rank size per qid: {df.groupby('qid').size().max()}"
+        )
         df = df.reset_index(drop=True)
         df = df.sort_values(["qid", "rank"], ascending=[True, True])
 
         for query, context in context_list:
             # check if there is a row in the df with "qid" == query.query_id, where "docno" == EMPTY_PLACEHOLDER_DOC.docno
             # if yes, replace it with the top document from the context
+            doc_gen = gen_context_docs(context)
             while True:
                 if not df[
                     (df["qid"] == query.query_id)
@@ -235,7 +245,6 @@ class Pipeline(ABC):
                 ].empty:
                     # Check if gen_docs has next element
                     doc: Document
-                    doc_gen = gen_context_docs(context)
                     try:
                         doc = next(doc_gen)
                         while (
